@@ -43,8 +43,12 @@ export interface Vendor {
   email: string | null;
   city: string | null;
   state: string | null;
+  zip: string | null;
+  country?: string;
   service_area: string | null;
+  service_radius: number | null;
   logo_url: string | null;
+  cover_url: string | null;
   avg_rating: number;
   review_count: number;
   is_verified: boolean;
@@ -53,6 +57,7 @@ export interface Vendor {
   is_claimed: boolean;
   notification_email: string | null;
   created_at: string;
+  services?: VendorService[];
 }
 
 export interface VendorService {
@@ -70,6 +75,7 @@ export interface Review {
   vendor_id: string;
   reviewer_id: string;
   reviewer?: Profile;
+  profiles?: Profile;
   rating: number;
   title: string | null;
   body: string | null;
