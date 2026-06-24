@@ -11,7 +11,8 @@ export function createClient() {
         // Prevent Next.js's fetch cache from serving stale Supabase data —
         // these are Server Component reads and should always reflect the
         // current database state on every request.
-        fetch: (url, options = {}) => fetch(url, { ...options, cache: 'no-store' }),
+        fetch: (url: RequestInfo | URL, options: RequestInit = {}) =>
+          fetch(url, { ...options, cache: 'no-store' }),
       },
       cookies: {
         getAll() { return cookieStore.getAll(); },
