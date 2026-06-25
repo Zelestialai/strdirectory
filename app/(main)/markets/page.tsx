@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getVendorCityCounts } from "@/lib/supabase/queries";
 import { MarketsClientPage } from "@/components/MarketsClientPage";
 import type { Market } from "@/types";
 import { MapPin } from "lucide-react";
@@ -19,16 +20,8 @@ export default async function MarketsPage() {
     .order("name")
     .limit(500); // explicit ceiling well above our count
 
-  // Build vendor counts by city
-  const { data: vendorRows } = await supabase
-    .from("vendors")
-    .select("city")
-    .eq("is_active", true);
-
-  const cityCount: Record<string, number> = {};
-  for (const v of (vendorRows ?? []) as { city: string | null }[]) {
-    if (v.city) cityCount[v.city] = (cityCount[v.city] ?? 0) + 1;
-  }
+  // Build vendor counts by city (paginated — see getVendorCityCounts for why)
+  const cityCount = await getVendorCityCounts(supabase);
 
   function countForMarket(market: Market): number {
     return market.cities.reduce((sum, city) => sum + (cityCount[city] ?? 0), 0);

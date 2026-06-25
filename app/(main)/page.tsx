@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search, Star, Shield, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getVendorCityCounts } from "@/lib/supabase/queries";
 import { VendorCard } from "@/components/VendorCard";
 import { CategoryCard } from "@/components/CategoryCard";
 import { MarketCard } from "@/components/MarketCard";
@@ -21,15 +22,8 @@ export default async function HomePage() {
     .order("name")
     .limit(8);
 
-  // Vendor counts per city for market cards
-  const { data: vendorCities } = await supabase
-    .from("vendors")
-    .select("city")
-    .eq("is_active", true);
-  const cityCount: Record<string, number> = {};
-  for (const v of (vendorCities ?? []) as { city: string | null }[]) {
-    if (v.city) cityCount[v.city] = (cityCount[v.city] ?? 0) + 1;
-  }
+  // Vendor counts per city for market cards (paginated — see getVendorCityCounts)
+  const cityCount = await getVendorCityCounts(supabase);
   function countForMarket(market: Market) {
     return market.cities.reduce((sum, city) => sum + (cityCount[city] ?? 0), 0);
   }
