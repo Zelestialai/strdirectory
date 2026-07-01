@@ -8,6 +8,7 @@ import { VendorContactButton } from "@/components/VendorContactButton";
 import { MapPin, Globe, Phone, Mail, CheckCircle2, Shield, Star, MessageSquare } from "lucide-react";
 import type { Vendor, Review } from "@/types";
 import { cn, COLOR_CLASSES, CATEGORY_COLORS } from "@/lib/utils";
+import { SaveVendorButton } from "@/components/SaveVendorButton";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -38,6 +39,18 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
 
   const { data: { user } } = await supabase.auth.getUser();
   const hasReviewed = reviews?.some((r: Review) => r.reviewer_id === user?.id);
+
+  // Check if host has saved this vendor
+  let isSaved = false;
+  let hasInquired = false;
+  if (user) {
+    const [{ data: savedRow }, { data: inquiryRow }] = await Promise.all([
+      supabase.from("saved_vendors").select("id").eq("host_id", user.id).eq("vendor_id", v.id).maybeSingle(),
+      supabase.from("inquiries").select("id").eq("sender_id", user.id).eq("vendor_id", v.id).limit(1).maybeSingle(),
+    ]);
+    isSaved = !!savedRow;
+    hasInquired = !!inquiryRow;
+  }
 
   const color = v.category?.color ?? CATEGORY_COLORS[v.category?.slug ?? ""] ?? "sky";
   const cls = COLOR_CLASSES[color] ?? COLOR_CLASSES.sky;
@@ -106,19 +119,18 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
           </div>
 
           <div className="flex flex-col gap-2 shrink-0">
-            {v.is_claimed ? (
-              /* Registered vendor — in-app messaging */
-              <VendorContactButton vendor={v} />
-            ) : (
-              /* Unclaimed / seed vendor — direct contact only */
-              <>
-                {v.email && (
+            <div className="flex items-center gap-2">
+              {v.is_claimed ? (
+                <VendorContactButton vendor={v} />
+              ) : (
+                v.email && (
                   <a href={`mailto:${v.email}`} className="btn-primary justify-center">
                     <Mail className="h-4 w-4" /> Send Email
                   </a>
-                )}
-              </>
-            )}
+                )
+              )}
+              {user && <SaveVendorButton vendorId={v.id} isSaved={isSaved} />}
+            </div>
             {v.phone && (
               <a href={`tel:${v.phone}`} className="btn-secondary justify-center">
                 <Phone className="h-4 w-4" /> Call
@@ -160,10 +172,13 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
                 <h2 className="text-lg font-semibold text-gray-900">
                   Reviews {v.review_count > 0 && <span className="text-gray-400 font-normal text-base">({v.review_count})</span>}
                 </h2>
-                {user && !hasReviewed && (
+                {user && !hasReviewed && hasInquired && (
                   <Link href={`/vendors/${v.slug}/review`} className="btn-secondary text-xs">
                     <Star className="h-3.5 w-3.5" /> Write a Review
                   </Link>
+                )}
+                {user && !hasReviewed && !hasInquired && (
+                  <span className="text-xs text-gray-400 italic">Contact this vendor first to leave a review</span>
                 )}
               </div>
 
@@ -208,24 +223,4 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
               {v.service_radius && (
                 <p className="text-xs text-gray-400">Services within {v.service_radius} miles</p>
               )}
-            </div>
-
-            {/* Rating summary */}
-            {v.avg_rating > 0 && (
-              <div className="rounded-xl border bg-white p-5">
-                <h3 className="font-semibold text-gray-800 mb-3">Rating</h3>
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl font-bold text-gray-900">{v.avg_rating.toFixed(1)}</span>
-                  <div>
-                    <StarRating rating={v.avg_rating} size="md" />
-                    <p className="text-xs text-gray-400 mt-1">{v.review_count} review{v.review_count !== 1 ? "s" : ""}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </aside>
-        </div>
-      </div>
-    </div>
-  );
-}
+    

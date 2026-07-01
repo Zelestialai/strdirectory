@@ -18,6 +18,5 @@ export function ReviewCard({ review }: { review: Review }) {
       <StarRating rating={review.rating} size="sm" />
       {review.title && <p className="font-medium text-gray-800 text-sm">{review.title}</p>}
       {review.body && <p className="text-sm text-gray-600 leading-relaxed">{review.body}</p>}
-    </div>
-  );
-}
+
+      {review.ven

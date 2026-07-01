@@ -1,0 +1,122 @@
+[
+  {
+    "business_name": "MDI Cleaning Services",
+    "slug": "mdi-cleaning-services",
+    "tagline": "Guest-ready turnover cleaning across Mount Desert Island",
+    "description": "MDI Cleaning Services provides vacation rental turnover cleaning throughout Mount Desert Island and Ellsworth, including Bar Harbor, Southwest Harbor, and Northeast Harbor, with linens, staging, and detail work geared toward five-star guest reviews.",
+    "website": "https://www.mdicleaning.com/",
+    "category_slug": "cleaning-turnover",
+    "city": "Bar Harbor",
+    "state": "ME"
+  },
+  {
+    "business_name": "Salt Air Properties",
+    "slug": "salt-air-properties",
+    "tagline": "Full-service vacation rental management in Downeast Maine",
+    "description": "Salt Air Properties manages vacation rental homes near Bar Harbor and Acadia National Park, with an in-house turnover team and full-service property management serving owners throughout Hancock and Washington Counties.",
+    "website": "https://www.saltairmaine.com/",
+    "category_slug": "property-management",
+    "city": "Ellsworth",
+    "state": "ME"
+  },
+  {
+    "business_name": "Dean Tyler Photography",
+    "slug": "dean-tyler-photography",
+    "tagline": "Real estate and vacation rental media for Downeast Maine",
+    "description": "Dean Tyler Photography (DTP) is a specialized media provider for the Downeast Maine real estate market, offering high-end real estate and vacation rental photography to help owners and agents make a strong first impression.",
+    "website": "https://dtp-realestate.com/",
+    "category_slug": "photography-design",
+    "city": "Bar Harbor",
+    "state": "ME"
+  },
+  {
+    "business_name": "Brian's Handyman Service",
+    "slug": "brians-handyman-service-mdi",
+    "tagline": "Handyman, remodeling & property caretaking across Hancock County",
+    "description": "Brian's Handyman Service offers exterior, interior, remodeling, minor plumbing/electrical, and seasonal property caretaking services across Bar Harbor, Ellsworth, Hancock, and the surrounding Mount Desert Island region, backed by 20+ years of experience.",
+    "website": "https://www.bhsmdi.com/",
+    "category_slug": "maintenance-repairs",
+    "city": "Ellsworth",
+    "state": "ME"
+  },
+  {
+    "business_name": "The Knowles Company",
+    "slug": "the-knowles-company",
+    "tagline": "Real estate and vacation rentals on Mount Desert Island since 1898",
+    "description": "The Knowles Company is a Mount Desert Island real estate and vacation rental brokerage founded in 1898, serving Northeast Harbor, Seal Harbor, Bar Harbor, Southwest Harbor, and the broader Downeast Maine coast for more than 125 years.",
+    "website": "https://knowlesco.com/",
+    "category_slug": "real-estate",
+    "city": "Northeast Harbor",
+    "state": "ME"
+  },
+  {
+    "business_name": "Rusticator",
+    "slug": "rusticator-design-mdi",
+    "tagline": "Interior design studio and home furnishings shop in Seal Harbor",
+    "description": "Rusticator is the design store and showroom of Keeler and Co., an interior design firm that has worked throughout Mount Desert Island since 2017, offering furnishings, decor, and full interior design services from its Seal Harbor location.",
+    "website": "https://www.rusticatorshop.com/",
+    "category_slug": "interior-design",
+    "city": "Seal Harbor",
+    "state": "ME"
+  },
+  {
+    "business_name": "Coastal Maine General Contracting",
+    "slug": "coastal-maine-general-contracting",
+    "tagline": "Custom home building and renovation serving Bar Harbor",
+    "description": "Coastal Maine General Contracting is a custom home builder and renovation contractor serving the Bar Harbor and Mount Desert Island area, handling framing, finish work, foundations, siding, roofing, and full residential construction.",
+    "website": "https://coastalmainegc.com/",
+    "category_slug": "renovation",
+    "city": "Bar Harbor",
+    "state": "ME"
+  },
+  {
+    "business_name": "Coston and McIsaac CPAs",
+    "slug": "coston-and-mcisaac-cpas",
+    "tagline": "Bar Harbor CPA firm serving Downeast Maine since 1987",
+    "description": "Coston and McIsaac CPAs is a full-service tax, accounting, and business consulting firm located in Bar Harbor, providing personalized financial guidance to individuals and businesses, including rental property owners, since 1987.",
+    "website": "https://www.costonandmcisaac.com/",
+    "category_slug": "accounting-tax",
+    "city": "Bar Harbor",
+    "state": "ME"
+  },
+  {
+    "business_name": "Cross Insurance - Mount Desert Island",
+    "slug": "cross-insurance-mdi",
+    "tagline": "Independent insurance agency serving Mount Desert Island homeowners",
+    "description": "Cross Insurance is an independent agency with more than seventy years of experience helping homeowners and rental property owners across Mount Desert Island, Bar Harbor, and Ellsworth find homeowner, landlord, and umbrella coverage from multiple carriers.",
+    "website": "https://www.crossagency.com/locations/mdi-maine/",
+    "category_slug": "insurance",
+    "city": "Mount Desert Island",
+    "state": "ME"
+  },
+  {
+    "business_name": "Merrill Furniture",
+    "slug": "merrill-furniture-ellsworth",
+    "tagline": "Maine's furniture, mattress & flooring store serving Downeast Maine",
+    "description": "Merrill Furniture is an Ellsworth-based furniture store offering living room, bedroom, and dining room furniture, mattresses, home office furniture, and flooring, with delivery throughout the Bar Harbor and Mount Desert Island area.",
+    "website": "https://www.merrillfurniture.com/",
+    "category_slug": "furniture-supplies",
+    "city": "Ellsworth",
+    "state": "ME"
+  },
+  {
+    "business_name": "Midcoast Smart Systems",
+    "slug": "midcoast-smart-systems",
+    "tagline": "Home automation, security & surveillance installs from Bath to MDI",
+    "description": "Midcoast Smart Systems designs and installs security, surveillance, and home automation systems for residential and commercial properties across Maine, serving the Mount Desert Island area with over 20 years of low-voltage and smart-home integration experience.",
+    "website": "https://midcoastsmartsystems.com/",
+    "category_slug": "smart-home-tech",
+    "city": "Mount Desert Island",
+    "state": "ME"
+  },
+  {
+    "business_name": "Gray & Palmer",
+    "slug": "gray-and-palmer-law",
+    "tagline": "Real estate law firm serving Hancock County for three decades",
+    "description": "Gray & Palmer is a Hancock County law firm with three decades of experience in real estate law, handling leases, contracts, deeds, and closings for clients in Ellsworth, Bar Harbor, Bucksport, and the surrounding Downeast Maine area.",
+    "website": "https://grayandpalmerlaw.com/hancock-county/",
+    "category_slug": "legal-regulations",
+    "city": "Ellsworth",
+    "state": "ME"
+  }
+]

@@ -3,7 +3,7 @@ export interface Profile {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  role: "user" | "admin";
+  role: "user" | "vendor" | "host" | "admin";
   created_at: string;
 }
 
@@ -79,6 +79,11 @@ export interface Review {
   rating: number;
   title: string | null;
   body: string | null;
+  is_verified: boolean;
+  vendor_response: string | null;
+  vendor_response_at: string | null;
+  photos: string[];
+  helpful_count: number;
   created_at: string;
 }
 
@@ -95,12 +100,4 @@ export interface Inquiry {
   created_at: string;
 }
 
-export interface VendorSearchParams {
-  q?: string;
-  category?: string;
-  city?: string;
-  state?: string;
-  market?: string;
-  min_rating?: string;
-  page?: string;
-}
+export in

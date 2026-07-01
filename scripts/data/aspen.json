@@ -1,0 +1,122 @@
+[
+  {
+    "business_name": "Cabin Works",
+    "slug": "cabin-works-aspen",
+    "tagline": "Vacation rental turnover cleaning across the Roaring Fork Valley",
+    "description": "Cabin Works provides vacation rental turnover cleaning and maintenance for owners and property managers throughout the Aspen and Roaring Fork Valley area. Cleaners are scheduled around guest checkout/check-in windows and undergo background checks and housekeeping training.",
+    "website": "https://cabinworkscolorado.com/vacation-rental-cleaning/",
+    "category_slug": "cleaning-turnover",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Frias Properties of Aspen Snowmass",
+    "slug": "frias-properties-aspen-snowmass",
+    "tagline": "Full-service short-term rental management in Aspen and Snowmass",
+    "description": "Frias Properties has managed condos, homes, and fractional vacation properties in Aspen and Snowmass Village for more than five decades, with offices on East Durant Avenue in Aspen and an expanded Snowmass Village presence.",
+    "website": "https://www.friasproperties.com/aspen-short-term-rental-management",
+    "category_slug": "property-management",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Mountain Home Photo",
+    "slug": "mountain-home-photo-aspen",
+    "tagline": "Real estate and rental listing photography in Aspen",
+    "description": "Mountain Home Photo has shot real estate photography in the Aspen area for more than 20 years, offering still photography, video, aerial drone work, and 360 interactive property tours for listings and rentals.",
+    "website": "https://www.mountainhomephoto.com/",
+    "category_slug": "photography-design",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Aspen Home Improvement",
+    "slug": "aspen-home-improvement",
+    "tagline": "Handyman and home maintenance services in Aspen, Woody Creek & Snowmass",
+    "description": "Aspen Home Improvement provides handyman, repair, and maintenance services for homeowners and property managers across Aspen, Woody Creek, and Snowmass Village.",
+    "website": "https://aspenhomeimprovement.com/handyman/",
+    "category_slug": "maintenance-repairs",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Aspen Luxury Brokers",
+    "slug": "aspen-luxury-brokers",
+    "tagline": "Luxury real estate brokerage serving Aspen and Snowmass",
+    "description": "Aspen Luxury Brokers represents buyers and sellers of luxury homes and condos in Aspen and Snowmass Village, with marketing packages built around professional photography, video, and premium listing placement.",
+    "website": "https://aspenluxurybrokers.com/",
+    "category_slug": "real-estate",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Anne Grice Interiors",
+    "slug": "anne-grice-interiors",
+    "tagline": "Award-winning interior design studio in Aspen since 1996",
+    "description": "Anne Grice Interiors is an Aspen-based interior design studio founded in 1996, known for personalized, high-end interiors that reflect Colorado mountain living across 200+ completed projects.",
+    "website": "https://annegrice.com/",
+    "category_slug": "interior-design",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Hendrickson Construction",
+    "slug": "hendrickson-construction-aspen",
+    "tagline": "General contractor for new builds and remodels in Aspen since 2014",
+    "description": "Hendrickson Construction is an Aspen-based general contracting firm building and remodeling luxury homes since 2014, handling everything from new construction to full remodels.",
+    "website": "https://hendricksoninc.com/",
+    "category_slug": "renovation",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Reese Henry & Company",
+    "slug": "reese-henry-company-aspen",
+    "tagline": "CPA firm serving Aspen and Carbondale since 1964",
+    "description": "Reese Henry & Company is a full-service CPA firm with offices in Aspen and Carbondale, providing tax planning, accounting, and business consulting for individuals and property owners in the Roaring Fork Valley.",
+    "website": "https://www.reesehenry.com/",
+    "category_slug": "accounting-tax",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Aspen Insurance Agency",
+    "slug": "aspen-insurance-agency",
+    "tagline": "Landlord, rental & umbrella insurance for Colorado property owners",
+    "description": "Aspen Insurance Agency is a family-owned Colorado agency that helps short-term rental and landlord property owners evaluate coverage gaps, umbrella liability needs, and landlord/rental insurance policies across multiple carriers.",
+    "website": "https://www.aspeninsuranceagency.com/rental-insurance.html",
+    "category_slug": "insurance",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Cathers Home Design & Showroom",
+    "slug": "cathers-home-design-showroom",
+    "tagline": "Luxury furniture showroom and interior design serving Aspen from Basalt",
+    "description": "Cathers Home is a furniture showroom and interior design studio in Basalt serving the Aspen area, offering furniture curation, rugs, lighting, fabric selection, and full remodel design services.",
+    "website": "https://cathershome.com/furniture-store-showroom/",
+    "category_slug": "furniture-supplies",
+    "city": "Basalt",
+    "state": "CO"
+  },
+  {
+    "business_name": "Epic Home Integration",
+    "slug": "epic-home-integration-aspen",
+    "tagline": "Smart home automation and security camera installs in Aspen",
+    "description": "Epic Home Integration brings more than two decades of experience to home automation in Aspen, including integrated sound, smart lighting and shades, and security camera systems for residential properties.",
+    "website": "https://www.epichome.net/",
+    "category_slug": "smart-home-tech",
+    "city": "Aspen",
+    "state": "CO"
+  },
+  {
+    "business_name": "Wright Law Aspen",
+    "slug": "wright-law-aspen",
+    "tagline": "Real estate law firm serving Aspen for nearly four decades",
+    "description": "Wright Law Aspen, LLP has practiced real estate and related law in Aspen for almost forty years, representing clients on property transactions and real estate matters in Pitkin County.",
+    "website": "https://www.wrightlawaspen.com/",
+    "category_slug": "legal-regulations",
+    "city": "Aspen",
+    "state": "CO"
+  }
+]

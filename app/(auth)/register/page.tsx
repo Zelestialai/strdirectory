@@ -5,22 +5,44 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
+import { Building2, Search, Home } from "lucide-react";
 
 const schema = z.object({
   full_name: z.string().min(2, "Name is required"),
   email: z.string().email("Enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  account_type: z.enum(["user", "vendor"]),
+  account_type: z.enum(["vendor", "host", "user"]),
 });
 type FormValues = z.infer<typeof schema>;
+
+const ACCOUNT_TYPES = [
+  {
+    value: "vendor" as const,
+    label: "List My Business",
+    description: "I offer services to STR hosts",
+    icon: Building2,
+  },
+  {
+    value: "host" as const,
+    label: "I'm an STR Host",
+    description: "I manage short-term rentals",
+    icon: Home,
+  },
+  {
+    value: "user" as const,
+    label: "Just Browsing",
+    description: "Explore vendors & resources",
+    icon: Search,
+  },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const { register, handleSubmit, setError, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, setError, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { account_type: "vendor" },
+    defaultValues: { account_type: "host" },
   });
 
   const accountType = watch("account_type");
@@ -37,7 +59,9 @@ export default function RegisterPage() {
     if (error) {
       setError("root", { message: error.message });
     } else {
-      router.push(account_type === "vendor" ? "/dashboard" : "/");
+      if (account_type === "vendor") router.push("/dashboard");
+      else if (account_type === "host") router.push("/host/dashboard");
+      else router.push("/");
       router.refresh();
     }
   };
@@ -49,17 +73,37 @@ export default function RegisterPage() {
         <p className="text-sm text-gray-500 mb-6">Join the STR Pro Directory</p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Account type toggle */}
-          <div className="grid grid-cols-2 gap-2 rounded-lg border p-1">
-            {(["vendor", "user"] as const).map((type) => (
+          {/* Account type selector */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">I want to…</p>
+            {ACCOUNT_TYPES.map(({ value, label, description, icon: Icon }) => (
               <label
-                key={type}
-                className={`cursor-pointer rounded-md px-3 py-2 text-sm text-center transition font-medium ${
-                  accountType === type ? "bg-brand-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
+                key={value}
+                className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 px-4 py-3 transition-all ${
+                  accountType === value
+                    ? "border-brand-600 bg-brand-50"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
                 }`}
               >
-                <input {...register("account_type")} type="radio" value={type} className="sr-only" />
-                {type === "vendor" ? "List My Business" : "Find Vendors"}
+                <input
+                  {...register("account_type")}
+                  type="radio"
+                  value={value}
+                  className="sr-only"
+                  onChange={() => setValue("account_type", value)}
+                />
+                <Icon className={`h-5 w-5 shrink-0 ${accountType === value ? "text-brand-600" : "text-gray-400"}`} />
+                <div className="min-w-0">
+                  <p className={`text-sm font-semibold ${accountType === value ? "text-brand-700" : "text-gray-700"}`}>
+                    {label}
+                  </p>
+                  <p className="text-xs text-gray-400">{description}</p>
+                </div>
+                {accountType === value && (
+                  <div className="ml-auto h-4 w-4 rounded-full bg-brand-600 flex items-center justify-center">
+                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                  </div>
+                )}
               </label>
             ))}
           </div>
