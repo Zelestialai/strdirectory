@@ -73,14 +73,12 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           {page > 1 && (
-            <a href={`/admin/vendors?page=${page - 1}${searchParams.filter ? `&filter=${searchParams.filter}` : ""}`} className="btn-secondary px-3 py-1.5 text-xs">← Prev</a>
+            <a
+              href={`/admin/vendors?${new URLSearchParams({ ...(searchParams.filter ? { filter: searchParams.filter } : {}), ...(searchParams.search ? { search: searchParams.search } : {}), page: String(page - 1) })}`}
+              className="btn-secondary px-3 py-1.5 text-xs"
+            >← Prev</a>
           )}
           <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
           {page < totalPages && (
-            <a href={`/admin/vendors?page=${page + 1}${searchParams.filter ? `&filter=${searchParams.filter}` : ""}`} className="btn-secondary px-3 py-1.5 text-xs">Next →</a>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+            <a
+              href={`/admin/vendors?${new URLSearchParams({ ...(searchPara
