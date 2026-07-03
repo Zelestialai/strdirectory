@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Star, MessageSquare, Eye, ArrowRight, PartyPopper, Zap } from "lucide-react";
 import type { Vendor } from "@/types";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { getChecklistSteps, getCompletionScore } from "@/lib/profile-completeness";
 
 export const metadata = { title: "Dashboard" };
 
@@ -15,7 +17,7 @@ export default async function DashboardPage({
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("*")
+    .select("*, services:vendor_services(*)")
     .eq("user_id", user!.id)
     .single();
 
@@ -34,6 +36,9 @@ export default async function DashboardPage({
   const { count: inquiryCount } = await supabase
     .from("inquiries").select("*", { count: "exact", head: true }).eq("vendor_id", v.id).eq("status", "new");
 
+  const steps = getChecklistSteps(v);
+  const score = getCompletionScore(steps);
+
   return (
     <div className="space-y-6">
       {/* Claimed success banner */}
@@ -43,7 +48,7 @@ export default async function DashboardPage({
           <div>
             <p className="font-semibold text-green-800">You've claimed your listing!</p>
             <p className="text-sm text-green-700 mt-0.5">
-              Welcome to your vendor dashboard. Start by completing your profile to attract more hosts.
+              Welcome to your vendor dashboard. Complete your profile below to start attracting hosts.
             </p>
           </div>
         </div>
@@ -55,6 +60,23 @@ export default async function DashboardPage({
           <Eye className="h-3.5 w-3.5" /> View Public Profile
         </Link>
       </div>
+
+      {/* Onboarding checklist — shown prominently until 100% */}
+      {score < 100 && (
+        <div>
+          <OnboardingChecklist steps={steps} score={score} />
+          {score < 50 && (
+            <p className="text-xs text-center text-gray-400 mt-2">
+              Vendors with complete profiles receive <span className="font-semibold text-gray-600">3× more inquiries</span> on average.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Complete badge */}
+      {score === 100 && (
+        <OnboardingChecklist steps={steps} score={score} />
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -101,25 +123,4 @@ export default async function DashboardPage({
             </div>
           </div>
           <Link href="/dashboard/upgrade" className="shrink-0 btn-primary text-xs px-4 py-2">
-            See Plans →
-          </Link>
-        </div>
-      )}
-
-      {/* Quick links */}
-      <div className="card p-5 space-y-2">
-        <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
-        {[
-          { href: "/dashboard/profile", label: "Edit your listing" },
-          { href: "/dashboard/inquiries", label: `View inquiries (${inquiryCount ?? 0} new)` },
-          { href: "/dashboard/reviews", label: "See your reviews" },
-          { href: `/vendors/${v.slug}`, label: "Preview public profile" },
-        ].map(({ href, label }) => (
-          <Link key={href} href={href} className="flex items-center justify-between rounded-lg p-3 text-sm text-gray-700 hover:bg-gray-50 transition">
-            {label} <ArrowRight className="h-4 w-4 text-gray-400" />
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
+        

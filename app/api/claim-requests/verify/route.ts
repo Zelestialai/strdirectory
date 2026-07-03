@@ -90,15 +90,14 @@ export async function GET(req: NextRequest) {
     type: "magiclink",
     email: claim.email,
     options: {
-      redirectTo: `${SITE_URL}/dashboard?claimed=1`,
+      redirectTo: `${SITE_URL}/dashboard/onboarding?claimed=1`,
     },
   });
 
   if (linkError || !linkData?.properties?.action_link) {
     // Fallback: redirect to login with success message
-    return NextResponse.redirect(`${SITE_URL}/login?claimed=1&email=${encodeURIComponent(claim.email)}`);
+    return NextResponse.redirect(`${SITE_URL}/login?claimed=1&email=${encodeURIComponent(claim.email)}&next=/dashboard/onboarding`);
   }
 
   // Redirect to the Supabase magic link — it logs them in and then sends to /dashboard
-  return NextResponse.redirect(linkData.properties.action_link);
-}
+  return NextResponse.redirec
