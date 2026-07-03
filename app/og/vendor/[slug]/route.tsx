@@ -11,7 +11,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
   const name        = v?.business_name ?? "STR Pro Directory";
   const tagline     = v?.tagline ?? v?.description?.slice(0, 90) ?? "";
   const location    = v?.city ? `${v.city}${v.state ? `, ${v.state}` : ""}` : "";
-  const category    = (v?.category as { name: string } | null)?.name ?? "";
+  const category    = (v?.category as unknown as { name: string } | null)?.name ?? "";
   const rating      = v?.avg_rating ?? 0;
   const reviewCount = v?.review_count ?? 0;
   const isFeatured  = v?.subscription_tier === "featured";
