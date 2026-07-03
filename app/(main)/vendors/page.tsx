@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { VendorCard } from "@/components/VendorCard";
 import { VendorSearchControls } from "@/components/VendorSearchControls";
@@ -135,8 +136,10 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
       <div className="flex flex-col lg:flex-row gap-8">
         {/* ─── Sidebar ───────────────────────────────────────────────────────── */}
         <aside className="w-full lg:w-60 shrink-0 space-y-6">
-          {/* Search + market + sort (client controls) */}
-          <VendorSearchControls markets={(markets as Market[]) ?? []} />
+          {/* Search + market + sort (client controls — needs Suspense for useSearchParams) */}
+          <Suspense fallback={<div className="h-24 rounded-xl bg-gray-100 animate-pulse" />}>
+            <VendorSearchControls markets={(markets as Market[]) ?? []} />
+          </Suspense>
 
           {/* Rating filter */}
           <div>
@@ -240,14 +243,4 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
               <p className="text-lg font-medium text-gray-600">No vendors found</p>
               <p className="text-sm mt-1">Try adjusting your search or filters.</p>
               {hasActiveFilters && (
-                <Link href="/vendors" className="btn-secondary mt-4 text-sm inline-flex">
-                  Clear all filters
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+                <Link href="/vendors" className="btn-s

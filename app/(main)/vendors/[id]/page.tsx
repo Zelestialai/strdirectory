@@ -13,9 +13,23 @@ import { SaveVendorButton } from "@/components/SaveVendorButton";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const { data } = await supabase.from("vendors").select("business_name, tagline").eq("slug", params.id).single();
+  const { data } = await supabase
+    .from("vendors")
+    .select("business_name, tagline, description, city, state")
+    .eq("slug", params.id)
+    .single();
   if (!data) return {};
-  return { title: data.business_name, description: data.tagline };
+  const title = `${data.business_name} — STR Pro Directory`;
+  const description =
+    data.tagline ??
+    data.description?.slice(0, 160) ??
+    `${data.business_name} is a short-term rental service provider${data.city ? ` in ${data.city}${data.state ? `, ${data.state}` : ""}` : ""}.`;
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "profile" },
+    alternates: { canonical: `/vendors/${params.id}` },
+  };
 }
 
 const REVIEWS_PER_PAGE = 10;
@@ -188,8 +202,11 @@ export default async function VendorProfilePage({
           </div>
         )}
 
-        {/* Header card */}
-        <div className="relative -mt-16 mb-8 rounded-2xl bg-white shadow-lg border p-6 flex flex-col sm:flex-row gap-5 items-start">
+        {/* Header card — only pull up over cover when there's no claim banner above it */}
+        <div className={cn(
+          "relative mb-8 rounded-2xl bg-white shadow-lg border p-6 flex flex-col sm:flex-row gap-5 items-start",
+          v.is_claimed ? "-mt-16" : "mt-4"
+        )}>
           {/* Logo */}
           <div className={cn("h-20 w-20 shrink-0 rounded-xl border-2 border-white shadow overflow-hidden", cls.bg)}>
             {v.logo_url ? (
@@ -280,13 +297,4 @@ export default async function VendorProfilePage({
             )}
 
             {/* Services */}
-            {v.services && v.services.length > 0 && (
-              <section>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Services Offered</h2>
-                <ul className="flex flex-wrap gap-2">
-                  {v.services.map((s) => (
-                    <li key={s.id} className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm text-gray-700 bg-gray-50">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> {s.name}
-                    </li>
-                  ))}
-                </
+      
