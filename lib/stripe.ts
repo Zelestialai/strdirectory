@@ -1,8 +1,11 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-06-24.dahlia",
-});
+// Fallback prevents "apiKey not provided" crash when module is imported
+// during Next.js build analysis before env vars are available at runtime.
+export const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY || "sk_not_configured",
+  { apiVersion: "2026-06-24.dahlia" }
+);
 
 export const STRIPE_PLANS = {
   pro: {

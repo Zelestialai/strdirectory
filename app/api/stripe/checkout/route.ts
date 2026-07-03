@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe, STRIPE_PLANS, type PlanKey } from "@/lib/stripe";
 
+// Prevent Next.js from statically rendering this route at build time
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
