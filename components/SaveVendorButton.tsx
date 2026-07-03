@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -14,13 +14,14 @@ export function SaveVendorButton({ vendorId, isSaved: initialSaved, className }:
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const toggle = async () => {
     // Check auth first
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push("/login");
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
 
@@ -58,7 +59,4 @@ export function SaveVendorButton({ vendorId, isSaved: initialSaved, className }:
           : "bg-gray-100 text-gray-400 hover:bg-brand-100 hover:text-brand-600"
       } ${loading ? "opacity-50 cursor-not-allowed" : ""} ${className ?? ""}`}
     >
-      <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} />
-    </button>
-  );
-}
+      <Bo

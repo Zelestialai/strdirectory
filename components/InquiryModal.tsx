@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +14,6 @@ type FormValues = z.infer<typeof schema>;
 
 interface InquiryModalProps {
   vendor: Vendor;
-  /** Logged-in user — required to send an inquiry */
   userEmail: string;
   userName: string | null;
   onClose: () => void;
@@ -23,10 +22,34 @@ interface InquiryModalProps {
 export function InquiryModal({ vendor, userEmail, userName, onClose }: InquiryModalProps) {
   const [sent, setSent] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const messageRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
+
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  // Auto-focus the message field
+  useEffect(() => {
+    messageRef.current?.focus();
+  }, []);
+
+  const { ref: messageFormRef, ...messageRest } = register("message");
 
   const onSubmit = async (values: FormValues) => {
     setSubmitError(null);
@@ -50,9 +73,19 @@ export function InquiryModal({ vendor, userEmail, userName, onClose }: InquiryMo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Contact ${vendor.business_name}`}
+    >
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
-        <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition"
+          aria-label="Close"
+        >
           <X className="h-5 w-5" />
         </button>
 
@@ -74,7 +107,8 @@ export function InquiryModal({ vendor, userEmail, userName, onClose }: InquiryMo
 
             {/* Sender identity — read-only since user is logged in */}
             <div className="mb-4 rounded-lg bg-gray-50 border px-4 py-3 text-sm text-gray-600">
-              Sending as <span className="font-medium text-gray-800">{userName ?? userEmail.split("@")[0]}</span>
+              Sending as{" "}
+              <span className="font-medium text-gray-800">{userName ?? userEmail.split("@")[0]}</span>
               <span className="text-gray-400"> · {userEmail}</span>
             </div>
 
@@ -89,31 +123,4 @@ export function InquiryModal({ vendor, userEmail, userName, onClose }: InquiryMo
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
-                <textarea
-                  {...register("message")}
-                  rows={4}
-                  className="input resize-none"
-                  placeholder="Describe your property, needs, and timeline…"
-                />
-                {errors.message && (
-                  <p className="text-xs text-red-500 mt-1">{errors.message.message}</p>
-                )}
-              </div>
-              {submitError && (
-                <p className="text-xs text-red-500 text-center">{submitError}</p>
-              )}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary w-full justify-center"
-              >
-                {isSubmitting ? "Sending…" : "Send Message"}
-              </button>
-            </form>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+            

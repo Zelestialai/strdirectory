@@ -25,13 +25,19 @@ export function ReviewCard({
   async function toggleHelpful() {
     if (!currentUserId || loading) return;
     setLoading(true);
+    const wasVoted = voted;
     try {
-      const method = voted ? "DELETE" : "POST";
+      const method = wasVoted ? "DELETE" : "POST";
       const res = await fetch(`/api/reviews/${review.id}/helpful`, { method });
-      if (res.ok || res.status === 409) {
-        setVoted(!voted);
-        setHelpfulCount((c) => (voted ? Math.max(0, c - 1) : c + 1));
+      if (res.ok) {
+        // Clean success path
+        setVoted(!wasVoted);
+        setHelpfulCount((c) => (wasVoted ? Math.max(0, c - 1) : c + 1));
+      } else if (res.status === 409 && !wasVoted) {
+        // 409 = already voted (DB unique constraint) — resync local state to voted=true
+        setVoted(true);
       }
+      // Any other error: leave state unchanged (implicit)
     } finally {
       setLoading(false);
     }
@@ -41,7 +47,3 @@ export function ReviewCard({
     <div className="rounded-xl border bg-white p-5 space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm">
-            {review.profiles?.full_name?.[0]?.toUpperCase() ?? "?"}
-          </div>
-          <span className="text-sm font-medium text-gr
