@@ -4,8 +4,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StarRating } from "@/components/StarRating";
 import { ReviewCard } from "@/components/ReviewCard";
+import { StarBreakdown } from "@/components/StarBreakdown";
 import { VendorContactButton } from "@/components/VendorContactButton";
-import { MapPin, Globe, Phone, Mail, CheckCircle2, Shield, Star, Tag } from "lucide-react";
+import { MapPin, Globe, Phone, Mail, CheckCircle2, Shield, Star, Tag, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Vendor, Review } from "@/types";
 import { cn, COLOR_CLASSES, CATEGORY_COLORS } from "@/lib/utils";
 import { SaveVendorButton } from "@/components/SaveVendorButton";
@@ -17,7 +18,15 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   return { title: data.business_name, description: data.tagline };
 }
 
-export default async function VendorProfilePage({ params }: { params: { id: string } }) {
+const REVIEWS_PER_PAGE = 10;
+
+export default async function VendorProfilePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { review_sort?: string; review_page?: string };
+}) {
   const supabase = createClient();
 
   const { data: vendor } = await supabase
@@ -30,15 +39,65 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
   if (!vendor) notFound();
   const v = vendor as Vendor;
 
-  const { data: reviews } = await supabase
+  const reviewSort = searchParams?.review_sort ?? "newest";
+  const reviewPage = Math.max(1, parseInt(searchParams?.review_page ?? "1"));
+  const reviewFrom = (reviewPage - 1) * REVIEWS_PER_PAGE;
+
+  // Build review query with sort
+  let reviewQuery = supabase
     .from("reviews")
-    .select("*, profiles(*)")
-    .eq("vendor_id", v.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
+    .select("*, profiles(*), review_votes(id, voter_id)", { count: "exact" })
+    .eq("vendor_id", v.id);
+
+  switch (reviewSort) {
+    case "highest":
+      reviewQuery = reviewQuery.order("rating", { ascending: false }).order("created_at", { ascending: false });
+      break;
+    case "most_helpful":
+      // Sort by vote count desc via a subquery workaround — fetch all and sort in JS
+      reviewQuery = reviewQuery.order("created_at", { ascending: false });
+      break;
+    default: // newest
+      reviewQuery = reviewQuery.order("created_at", { ascending: false });
+  }
+
+  const { data: rawReviews, count: reviewCount } = await reviewQuery.range(reviewFrom, reviewFrom + REVIEWS_PER_PAGE - 1);
+
+  // Attach helpful_count to each review
+  let reviews = (rawReviews ?? []).map((r) => ({
+    ...r,
+    helpful_count: Array.isArray(r.review_votes) ? r.review_votes.length : 0,
+  })) as (Review & { review_votes: { id: string; voter_id: string }[] })[];
+
+  if (reviewSort === "most_helpful") {
+    reviews = [...reviews].sort((a, b) => b.helpful_count - a.helpful_count);
+  }
+
+  const totalReviewPages = Math.ceil((reviewCount ?? 0) / REVIEWS_PER_PAGE);
 
   const { data: { user } } = await supabase.auth.getUser();
-  const hasReviewed = reviews?.some((r: Review) => r.reviewer_id === user?.id);
+  const hasReviewed = reviews.some((r) => r.reviewer_id === user?.id);
+
+  // Which reviews the current user has voted helpful
+  const userVotedIds = new Set(
+    reviews.flatMap((r) =>
+      r.review_votes
+        .filter((v) => v.voter_id === user?.id)
+        .map(() => r.id)
+    )
+  );
+
+  // Star breakdown counts
+  const starCounts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  if (v.review_count > 0) {
+    const { data: allRatings } = await supabase
+      .from("reviews")
+      .select("rating")
+      .eq("vendor_id", v.id);
+    for (const r of allRatings ?? []) {
+      starCounts[r.rating] = (starCounts[r.rating] ?? 0) + 1;
+    }
+  }
 
   // Check if host has saved this vendor
   let isSaved = false;
@@ -54,8 +113,14 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
 
   // Record a profile view — skip if the viewer is the vendor themselves
   if (!user || user.id !== v.user_id) {
-    // Non-blocking: don't await so the page renders immediately
     supabase.from("vendor_views").insert({ vendor_id: v.id }).then(() => {});
+  }
+
+  function reviewHref(overrides: Record<string, string | undefined>) {
+    const p = new URLSearchParams();
+    const merged = { review_sort: reviewSort !== "newest" ? reviewSort : undefined, review_page: reviewPage > 1 ? String(reviewPage) : undefined, ...overrides };
+    Object.entries(merged).forEach(([k, val]) => { if (val) p.set(k, val); });
+    return `/vendors/${v.slug}${p.toString() ? `?${p.toString()}` : ""}`;
   }
 
   const color = v.category?.color ?? CATEGORY_COLORS[v.category?.slug ?? ""] ?? "sky";
@@ -212,65 +277,11 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
                 )}
               </div>
 
-              {reviews && reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {(reviews as Review[]).map((r) => <ReviewCard key={r.id} review={r} />)}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400 rounded-xl border p-6 text-center">
-                  No reviews yet. Be the first to leave one!
-                </p>
+              {/* Star breakdown */}
+              {v.review_count > 0 && (
+                <StarBreakdown counts={starCounts} total={v.review_count} avg={v.avg_rating} />
               )}
-            </section>
-          </div>
 
-          {/* Sidebar */}
-          <aside className="space-y-5">
-            {/* Contact card */}
-            <div className="rounded-xl border bg-white p-5 space-y-3">
-              <h3 className="font-semibold text-gray-800">Contact Info</h3>
-              {v.email && (
-                <a href={`mailto:${v.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-700">
-                  <Mail className="h-4 w-4 shrink-0" /> {v.email}
-                </a>
-              )}
-              {v.phone && (
-                <a href={`tel:${v.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-700">
-                  <Phone className="h-4 w-4 shrink-0" /> {v.phone}
-                </a>
-              )}
-              {v.website && (
-                <a href={v.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-700">
-                  <Globe className="h-4 w-4 shrink-0" /> Website
-                </a>
-              )}
-              {v.city && (
-                <span className="flex items-center gap-2 text-sm text-gray-600">
-                  <MapPin className="h-4 w-4 shrink-0" />
-                  {[v.city, v.state, v.zip].filter(Boolean).join(", ")}
-                </span>
-              )}
-              {v.service_radius && (
-                <p className="text-xs text-gray-400">Services within {v.service_radius} miles</p>
-              )}
-            </div>
-
-            {/* Rating summary */}
-            {v.avg_rating > 0 && (
-              <div className="rounded-xl border bg-white p-5">
-                <h3 className="font-semibold text-gray-800 mb-3">Rating</h3>
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl font-bold text-gray-900">{v.avg_rating.toFixed(1)}</span>
-                  <div>
-                    <StarRating rating={v.avg_rating} size="md" />
-                    <p className="text-xs text-gray-400 mt-1">{v.review_count} review{v.review_count !== 1 ? "s" : ""}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </aside>
-        </div>
-      </div>
-    </div>
-  );
-}
+              {/* Sort controls */}
+              {v.review_count > 0 && (
+                <div
