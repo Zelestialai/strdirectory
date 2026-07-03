@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Building2, Search, Home } from "lucide-react";
+import { Building2, Search, Home, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
 
 const schema = z.object({
   full_name: z.string().min(2, "Name is required"),
@@ -39,6 +40,7 @@ const ACCOUNT_TYPES = [
 export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
+  const [emailSent, setEmailSent] = useState(false);
 
   const { register, handleSubmit, setError, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -48,23 +50,52 @@ export default function RegisterPage() {
   const accountType = watch("account_type");
 
   const onSubmit = async ({ full_name, email, password, account_type }: FormValues) => {
-    const { error } = await supabase.auth.signUp({
+    const next =
+      account_type === "vendor" ? "/dashboard/onboarding" :
+      account_type === "host"   ? "/host/dashboard" : "/";
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name, role: account_type },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
     if (error) {
       setError("root", { message: error.message });
-    } else {
-      if (account_type === "vendor") router.push("/dashboard");
-      else if (account_type === "host") router.push("/host/dashboard");
-      else router.push("/");
+    } else if (data.session) {
+      // Email confirmation disabled — session is live immediately
+      router.push(next);
       router.refresh();
+    } else {
+      // Email confirmation required — tell the user to check their inbox
+      setEmailSent(true);
     }
   };
+
+  if (emailSent) {
+    return (
+      <div className="w-full max-w-sm">
+        <div className="card p-8 text-center">
+          <CheckCircle2 className="mx-auto h-12 w-12 text-green-500 mb-4" />
+          <h2 className="text-xl font-bold mb-2">Check your email</h2>
+          <p className="text-sm text-gray-500">
+            We sent a confirmation link to your inbox. Click it to activate your account.
+          </p>
+          <p className="mt-4 text-xs text-gray-400">
+            Didn't get it?{" "}
+            <button
+              className="text-brand-600 hover:underline"
+              onClick={() => setEmailSent(false)}
+            >
+              Try again
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm">
@@ -116,30 +147,4 @@ export default function RegisterPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input {...register("email")} type="email" className="input" placeholder="you@example.com" />
-            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input {...register("password")} type="password" className="input" placeholder="••••••••" />
-            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
-          </div>
-
-          {errors.root && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-              {errors.root.message}
-            </div>
-          )}
-
-          <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center">
-            {isSubmitting ? "Creating account…" : "Create Account"}
-          </button>
-        </form>
-      </div>
-
-      <p className="mt-4 text-center text-sm text-gray-500">
-        Already have an account?{" "}
-        <Link href="/login" className="text-brand-600 font-medium hover:underline">Sign in</Link>
-      </p>
-    </div>
-  );
-}
+            {errors.email && <p

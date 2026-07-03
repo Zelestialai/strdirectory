@@ -14,11 +14,10 @@ export default function robots(): MetadataRoute.Robots {
           "/admin/",
           "/dashboard/",
           "/api/",
+          "/auth/",
           "/login",
           "/register",
         ],
       },
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-  };
-}
+    sitemap: `${BASE_URL}/s
