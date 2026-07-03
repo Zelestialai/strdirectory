@@ -24,10 +24,23 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     data.tagline ??
     data.description?.slice(0, 160) ??
     `${data.business_name} is a short-term rental service provider${data.city ? ` in ${data.city}${data.state ? `, ${data.state}` : ""}` : ""}.`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const ogImage = `${siteUrl}/og/vendor/${params.id}`;
   return {
     title,
     description,
-    openGraph: { title, description, type: "profile" },
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
     alternates: { canonical: `/vendors/${params.id}` },
   };
 }
@@ -288,13 +301,4 @@ export default async function VendorProfilePage({
           <div className="lg:col-span-2 space-y-8">
             {/* About */}
             {v.description && (
-              <section>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">About</h2>
-                <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-line">
-                  {v.description}
-                </div>
-              </section>
-            )}
-
-            {/* Services */}
-      
+             
