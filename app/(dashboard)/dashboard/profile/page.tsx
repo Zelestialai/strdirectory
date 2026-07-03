@@ -81,31 +81,47 @@ export default function EditProfilePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const slug = slugify(values.business_name);
-    const payload = {
-      user_id: user.id,
-      business_name: values.business_name,
-      slug,
-      category_id: values.category_id,
-      tagline: values.tagline || null,
-      description: values.description || null,
-      email: values.email,
-      notification_email: values.notification_email || null,
-      phone: values.phone || null,
-      website: values.website || null,
-      city: values.city || null,
-      state: values.state || null,
-      zip: values.zip || null,
-      service_radius: values.service_radius || null,
-      // Mark this vendor as claimed by their own registered account
-      is_claimed: true,
-    };
-
+    const isNewVendor = !existingVendorId;
     let vendorId = existingVendorId;
+
     if (vendorId) {
-      await supabase.from("vendors").update(payload).eq("id", vendorId);
+      // UPDATE — never regenerate the slug; changing business name must not break existing links
+      const updatePayload = {
+        business_name: values.business_name,
+        category_id: values.category_id,
+        tagline: values.tagline || null,
+        description: values.description || null,
+        email: values.email,
+        notification_email: values.notification_email || null,
+        phone: values.phone || null,
+        website: values.website || null,
+        city: values.city || null,
+        state: values.state?.toUpperCase() || null,
+        zip: values.zip || null,
+        service_radius: values.service_radius || null,
+      };
+      await supabase.from("vendors").update(updatePayload).eq("id", vendorId);
     } else {
-      const { data } = await supabase.from("vendors").insert(payload).select("id").single();
+      // INSERT — generate slug once from the initial business name
+      const slug = slugify(values.business_name);
+      const insertPayload = {
+        user_id: user.id,
+        business_name: values.business_name,
+        slug,
+        category_id: values.category_id,
+        tagline: values.tagline || null,
+        description: values.description || null,
+        email: values.email,
+        notification_email: values.notification_email || null,
+        phone: values.phone || null,
+        website: values.website || null,
+        city: values.city || null,
+        state: values.state?.toUpperCase() || null,
+        zip: values.zip || null,
+        service_radius: values.service_radius || null,
+        is_claimed: true,
+      };
+      const { data } = await supabase.from("vendors").insert(insertPayload).select("id").single();
       vendorId = data?.id ?? null;
     }
 
@@ -118,6 +134,13 @@ export default function EditProfilePage() {
       }
       setExistingVendorId(vendorId);
     }
+
+    // New vendor → take them to the onboarding wizard
+    if (isNewVendor) {
+      router.push("/dashboard/onboarding");
+      return;
+    }
+
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -244,30 +267,4 @@ export default function EditProfilePage() {
               <input {...register("state")} className="input" placeholder="FL" maxLength={2} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ZIP</label>
-              <input {...register("zip")} className="input" placeholder="33101" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Service Radius (miles)</label>
-            <input
-              {...register("service_radius")}
-              type="number"
-              min="0"
-              max="500"
-              className="input w-32"
-              placeholder="25"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button type="submit" disabled={isSubmitting} className="btn-primary px-8">
-            {isSubmitting ? "Saving…" : existingVendorId ? "Save Changes" : "Create Listing"}
-          </button>
-          {saved && <span className="text-sm text-green-600 font-medium">✓ Saved successfully</span>}
-        </div>
-      </form>
-    </div>
-  );
-}
+              <label className="block text-sm font-medium text-gray-700
