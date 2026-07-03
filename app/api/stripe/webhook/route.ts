@@ -66,9 +66,10 @@ export async function POST(req: NextRequest) {
 
       if (!vendorId || !plan || !subscriptionId) break;
 
-      // Fetch subscription to get period end
+      // Fetch subscription to get period end (Stripe v22: current_period_end is on items, not subscription)
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      await activateTier(vendorId, plan, subscriptionId, subscription.current_period_end);
+      const periodEnd = subscription.items.data[0]?.current_period_end ?? null;
+      await activateTier(vendorId, plan, subscriptionId, periodEnd);
       break;
     }
 
@@ -80,7 +81,8 @@ export async function POST(req: NextRequest) {
       if (!vendorId || !plan) break;
 
       if (subscription.status === "active") {
-        await activateTier(vendorId, plan, subscription.id, subscription.current_period_end);
+        const periodEnd = subscription.items.data[0]?.current_period_end ?? null;
+        await activateTier(vendorId, plan, subscription.id, periodEnd);
       } else if (["canceled", "unpaid", "past_due"].includes(subscription.status)) {
         await deactivateTier(vendorId);
       }
@@ -96,11 +98,4 @@ export async function POST(req: NextRequest) {
 
     case "invoice.payment_failed": {
       // Optionally notify vendor — for now just log
-      const invoice = event.data.object as Stripe.Invoice;
-      console.warn("Payment failed for customer:", invoice.customer);
-      break;
-    }
-  }
-
-  return NextResponse.json({ received: true });
-}
+      const invoice = 
