@@ -126,8 +126,40 @@ export default async function VendorProfilePage({
   const color = v.category?.color ?? CATEGORY_COLORS[v.category?.slug ?? ""] ?? "sky";
   const cls = COLOR_CLASSES[color] ?? COLOR_CLASSES.sky;
 
+  // ── LocalBusiness JSON-LD ──────────────────────────────────────────────────
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: v.business_name,
+    ...(v.description || v.tagline ? { description: v.description ?? v.tagline } : {}),
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/vendors/${v.slug}`,
+    ...(v.phone ? { telephone: v.phone } : {}),
+    ...(v.email ? { email: v.email } : {}),
+    ...(v.logo_url ? { image: v.logo_url } : {}),
+    address: {
+      "@type": "PostalAddress",
+      ...(v.city ? { addressLocality: v.city } : {}),
+      ...(v.state ? { addressRegion: v.state } : {}),
+      addressCountry: "US",
+    },
+    ...(v.avg_rating > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: v.avg_rating,
+            reviewCount: v.review_count,
+          },
+        }
+      : {}),
+  };
+
   return (
-    <div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div>
       {/* Cover */}
       <div className={cn("relative h-56 sm:h-72 w-full", v.cover_url ? "" : cls.bg)}>
         {v.cover_url && (
@@ -257,31 +289,4 @@ export default async function VendorProfilePage({
                       <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> {s.name}
                     </li>
                   ))}
-                </ul>
-              </section>
-            )}
-
-            {/* Reviews */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Reviews {v.review_count > 0 && <span className="text-gray-400 font-normal text-base">({v.review_count})</span>}
-                </h2>
-                {user && !hasReviewed && hasInquired && (
-                  <Link href={`/vendors/${v.slug}/review`} className="btn-secondary text-xs">
-                    <Star className="h-3.5 w-3.5" /> Write a Review
-                  </Link>
-                )}
-                {user && !hasReviewed && !hasInquired && (
-                  <span className="text-xs text-gray-400 italic">Contact this vendor first to leave a review</span>
-                )}
-              </div>
-
-              {/* Star breakdown */}
-              {v.review_count > 0 && (
-                <StarBreakdown counts={starCounts} total={v.review_count} avg={v.avg_rating} />
-              )}
-
-              {/* Sort controls */}
-              {v.review_count > 0 && (
-                <div
+                </
