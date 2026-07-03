@@ -59,4 +59,7 @@ export function SaveVendorButton({ vendorId, isSaved: initialSaved, className }:
           : "bg-gray-100 text-gray-400 hover:bg-brand-100 hover:text-brand-600"
       } ${loading ? "opacity-50 cursor-not-allowed" : ""} ${className ?? ""}`}
     >
-      <Bo
+      <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} />
+    </button>
+  );
+}

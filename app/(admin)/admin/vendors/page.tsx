@@ -81,4 +81,12 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
           <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
           {page < totalPages && (
             <a
-              href={`/admin/vendors?${new URLSearchParams({ ...(searchPara
+              href={`/admin/vendors?${new URLSearchParams({ ...(searchParams.filter ? { filter: searchParams.filter } : {}), ...(searchParams.search ? { search: searchParams.search } : {}), page: String(page + 1) })}`}
+              className="btn-secondary px-3 py-1.5 text-xs"
+            >Next →</a>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

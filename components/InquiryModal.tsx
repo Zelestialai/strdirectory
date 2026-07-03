@@ -123,4 +123,35 @@ export function InquiryModal({ vendor, userEmail, userName, onClose }: InquiryMo
                 />
               </div>
               <div>
-            
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                <textarea
+                  {...messageRest}
+                  ref={(el) => {
+                    messageFormRef(el);
+                    messageRef.current = el;
+                  }}
+                  rows={4}
+                  className="input resize-none"
+                  placeholder="Describe your property, needs, and timeline…"
+                />
+                {errors.message && (
+                  <p className="text-xs text-red-500 mt-1">{errors.message.message}</p>
+                )}
+              </div>
+              {submitError && (
+                <p className="text-xs text-red-500 text-center">{submitError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary w-full justify-center"
+              >
+                {isSubmitting ? "Sending…" : "Send Message"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
