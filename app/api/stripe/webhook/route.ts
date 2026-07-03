@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
 
       if (!vendorId || !plan || !subscriptionId) break;
 
-      // Fetch subscription to get period end (Stripe v22: current_period_end is on items, not subscription)
+      // Fetch subscription to get period end
+      // Stripe v22: current_period_end moved to SubscriptionItem, not Subscription
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const periodEnd = subscription.items.data[0]?.current_period_end ?? null;
       await activateTier(vendorId, plan, subscriptionId, periodEnd);
@@ -98,4 +99,11 @@ export async function POST(req: NextRequest) {
 
     case "invoice.payment_failed": {
       // Optionally notify vendor — for now just log
-      const invoice = 
+      const invoice = event.data.object as Stripe.Invoice;
+      console.warn("Payment failed for customer:", invoice.customer);
+      break;
+    }
+  }
+
+  return NextResponse.json({ received: true });
+}
