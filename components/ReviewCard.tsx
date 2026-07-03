@@ -19,4 +19,14 @@ export function ReviewCard({ review }: { review: Review }) {
       {review.title && <p className="font-medium text-gray-800 text-sm">{review.title}</p>}
       {review.body && <p className="text-sm text-gray-600 leading-relaxed">{review.body}</p>}
 
-      {review.ven
+      {review.vendor_response && (
+        <div className="bg-gray-50 border-l-4 border-brand-300 rounded-r-lg p-3 mt-1">
+          <p className="text-xs font-semibold text-gray-500 mb-1">
+            Response from vendor{review.vendor_response_at ? ` · ${formatDate(review.vendor_response_at)}` : ""}
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">{review.vendor_response}</p>
+        </div>
+      )}
+    </div>
+  );
+}

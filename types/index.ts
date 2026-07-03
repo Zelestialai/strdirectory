@@ -56,6 +56,10 @@ export interface Vendor {
   is_active: boolean;
   is_claimed: boolean;
   notification_email: string | null;
+  subscription_tier: "free" | "pro" | "featured";
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_expires_at: string | null;
   created_at: string;
   services?: VendorService[];
 }
@@ -100,4 +104,34 @@ export interface Inquiry {
   created_at: string;
 }
 
-export in
+export interface SavedVendor {
+  id: string;
+  host_id: string;
+  vendor_id: string;
+  vendor?: Vendor;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ClaimRequest {
+  id: string;
+  vendor_id: string;
+  email: string;
+  contact_name: string;
+  message: string | null;
+  token: string;
+  status: "pending" | "completed" | "expired";
+  created_at: string;
+  expires_at: string;
+  completed_at: string | null;
+}
+
+export interface VendorSearchParams {
+  q?: string;
+  category?: string;
+  city?: string;
+  state?: string;
+  market?: string;
+  min_rating?: string;
+  page?: string;
+}

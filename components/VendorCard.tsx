@@ -18,7 +18,10 @@ export function VendorCard({ vendor }: VendorCardProps) {
   const hasCustomCover = !!vendor.cover_url;
 
   return (
-    <div className="card flex flex-col group overflow-hidden">
+    <div className={cn(
+      "card flex flex-col group overflow-hidden",
+      vendor.subscription_tier === "featured" && "ring-2 ring-amber-400 ring-offset-1"
+    )}>
       {/* Clickable body — links to full profile */}
       <Link href={`/vendors/${vendor.slug}`} className="flex flex-col flex-1">
         {/* Cover / logo area */}
@@ -51,9 +54,14 @@ export function VendorCard({ vendor }: VendorCardProps) {
             )
           )}
 
-          {vendor.is_featured && (
+          {vendor.subscription_tier === "featured" && (
             <span className="absolute top-2 right-2 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-semibold text-white shadow">
-              Featured
+              ★ Featured
+            </span>
+          )}
+          {vendor.subscription_tier === "pro" && (
+            <span className="absolute top-2 right-2 rounded-full bg-blue-500 px-2 py-0.5 text-xs font-semibold text-white shadow">
+              Pro
             </span>
           )}
         </div>

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StarRating } from "@/components/StarRating";
 import { ReviewCard } from "@/components/ReviewCard";
 import { VendorContactButton } from "@/components/VendorContactButton";
-import { MapPin, Globe, Phone, Mail, CheckCircle2, Shield, Star, MessageSquare } from "lucide-react";
+import { MapPin, Globe, Phone, Mail, CheckCircle2, Shield, Star, Tag } from "lucide-react";
 import type { Vendor, Review } from "@/types";
 import { cn, COLOR_CLASSES, CATEGORY_COLORS } from "@/lib/utils";
 import { SaveVendorButton } from "@/components/SaveVendorButton";
@@ -52,6 +52,12 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
     hasInquired = !!inquiryRow;
   }
 
+  // Record a profile view — skip if the viewer is the vendor themselves
+  if (!user || user.id !== v.user_id) {
+    // Non-blocking: don't await so the page renders immediately
+    supabase.from("vendor_views").insert({ vendor_id: v.id }).then(() => {});
+  }
+
   const color = v.category?.color ?? CATEGORY_COLORS[v.category?.slug ?? ""] ?? "sky";
   const cls = COLOR_CLASSES[color] ?? COLOR_CLASSES.sky;
 
@@ -66,6 +72,25 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
       </div>
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        {/* Claim this business banner — shown for unclaimed listings */}
+        {!v.is_claimed && (
+          <div className="mt-4 mb-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Tag className="h-4 w-4 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-800">
+                <span className="font-semibold">Is this your business?</span>{" "}
+                Claim this listing to manage your profile, respond to inquiries, and reply to reviews.
+              </p>
+            </div>
+            <Link
+              href={`/vendors/${v.slug}/claim`}
+              className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+            >
+              Claim this business →
+            </Link>
+          </div>
+        )}
+
         {/* Header card */}
         <div className="relative -mt-16 mb-8 rounded-2xl bg-white shadow-lg border p-6 flex flex-col sm:flex-row gap-5 items-start">
           {/* Logo */}
@@ -87,9 +112,14 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
                   <Shield className="h-3 w-3" /> Verified
                 </span>
               )}
-              {v.is_featured && (
+              {v.subscription_tier === "featured" && (
                 <span className="text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
-                  Featured
+                  ★ Featured
+                </span>
+              )}
+              {v.subscription_tier === "pro" && (
+                <span className="text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">
+                  ⚡ Pro
                 </span>
               )}
             </div>
@@ -223,4 +253,24 @@ export default async function VendorProfilePage({ params }: { params: { id: stri
               {v.service_radius && (
                 <p className="text-xs text-gray-400">Services within {v.service_radius} miles</p>
               )}
-    
+            </div>
+
+            {/* Rating summary */}
+            {v.avg_rating > 0 && (
+              <div className="rounded-xl border bg-white p-5">
+                <h3 className="font-semibold text-gray-800 mb-3">Rating</h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl font-bold text-gray-900">{v.avg_rating.toFixed(1)}</span>
+                  <div>
+                    <StarRating rating={v.avg_rating} size="md" />
+                    <p className="text-xs text-gray-400 mt-1">{v.review_count} review{v.review_count !== 1 ? "s" : ""}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -107,4 +107,108 @@ export default function WriteReviewPage() {
           <p className="text-lg font-semibold text-gray-700 mb-2">
             You've already reviewed {vendorName}
           </p>
-          <p className="text-sm text-gray-50
+          <p className="text-sm text-gray-500">
+            Each vendor can only be reviewed once per account.
+          </p>
+          <Link href={`/vendors/${slug}`} className="btn-secondary mt-4 inline-block text-sm">
+            View your review
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // No prior inquiry — hard gate
+  if (!hasInquired) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
+        <Link
+          href={`/vendors/${slug}`}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-brand-700 mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to {vendorName}
+        </Link>
+        <div className="card p-8 text-center">
+          <Lock className="mx-auto h-10 w-10 text-gray-300 mb-3" />
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
+            Contact this vendor first
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            To keep reviews trustworthy, you need to have contacted{" "}
+            <strong>{vendorName}</strong> through the directory before leaving
+            a review.
+          </p>
+          <Link href={`/vendors/${slug}`} className="btn-primary text-sm">
+            Go to {vendorName}'s Profile
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Allowed — show the form
+  return (
+    <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
+      <Link
+        href={`/vendors/${slug}`}
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-brand-700 mb-6"
+      >
+        <ArrowLeft className="h-4 w-4" /> Back to {vendorName}
+      </Link>
+      <div className="card p-8">
+        <h1 className="text-2xl font-bold mb-1">Write a Review</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Share your experience with {vendorName}
+        </p>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Rating *
+            </label>
+            <StarRating
+              rating={rating}
+              size="lg"
+              interactive
+              onRate={(r) => setValue("rating", r)}
+            />
+            {errors.rating && (
+              <p className="text-xs text-red-500 mt-1">{errors.rating.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Review Title
+            </label>
+            <input
+              {...register("title")}
+              className="input"
+              placeholder="Summarize your experience"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Your Review *
+            </label>
+            <textarea
+              {...register("body")}
+              rows={5}
+              className="input resize-none"
+              placeholder="Tell others about your experience with this vendor…"
+            />
+            {errors.body && (
+              <p className="text-xs text-red-500 mt-1">{errors.body.message}</p>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn-primary w-full justify-center"
+          >
+            {isSubmitting ? "Submitting…" : "Submit Review"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

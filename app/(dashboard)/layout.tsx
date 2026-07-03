@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, User, MessageSquare, Star, Settings } from "lucide-react";
+import { LayoutDashboard, User, MessageSquare, Star, BarChart2, Zap } from "lucide-react";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -13,6 +13,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/profile", label: "Edit Profile", icon: User },
     { href: "/dashboard/inquiries", label: "Messages", icon: MessageSquare },
     { href: "/dashboard/reviews", label: "Reviews", icon: Star },
+    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart2 },
+    { href: "/dashboard/upgrade", label: "Upgrade", icon: Zap },
   ];
 
   return (

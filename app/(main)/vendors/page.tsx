@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { VendorCard } from "@/components/VendorCard";
-import { CategoryCard } from "@/components/CategoryCard";
+import { VendorSearchControls } from "@/components/VendorSearchControls";
 import type { Vendor, Category, Market } from "@/types";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, X } from "lucide-react";
+import Link from "next/link";
 
 interface SearchParams {
   q?: string;
@@ -11,6 +12,7 @@ interface SearchParams {
   state?: string;
   market?: string;
   min_rating?: string;
+  sort?: string;
   page?: string;
 }
 
@@ -20,149 +22,142 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
   const supabase = createClient();
   const page = Math.max(1, parseInt(searchParams.page ?? "1"));
   const from = (page - 1) * PER_PAGE;
+  const sort = searchParams.sort ?? "best_rated";
 
-  // Categories + markets for sidebar
-  const { data: categories } = await supabase.from("categories").select("*").order("name");
-  const { data: markets } = await supabase.from("markets").select("*").eq("is_active", true).order("name");
+  // Categories + markets for sidebar/controls
+  const [{ data: categories }, { data: markets }] = await Promise.all([
+    supabase.from("categories").select("*").order("name"),
+    supabase.from("markets").select("*").eq("is_active", true).order("name"),
+  ]);
 
-  // Resolve active market (if ?market= param present)
   const activeMarket = searchParams.market
     ? (markets as Market[])?.find((m) => m.slug === searchParams.market)
     : null;
+  const activeCategory = (categories as Category[])?.find((c) => c.slug === searchParams.category);
 
-  // Build query
+  // ── Build query ──────────────────────────────────────────────────────────────
   let query = supabase
     .from("vendors")
     .select("*, category:categories(*)", { count: "exact" })
     .eq("is_active", true);
 
-  if (searchParams.q) {
-    query = query.textSearch("business_name", searchParams.q, { type: "websearch" });
+  // Multi-field keyword search: name, tagline, description
+  if (searchParams.q?.trim()) {
+    const q = searchParams.q.trim();
+    query = query.or(
+      `business_name.ilike.%${q}%,tagline.ilike.%${q}%,description.ilike.%${q}%`
+    );
   }
-  if (searchParams.category) {
-    const cat = (categories as Category[])?.find((c) => c.slug === searchParams.category);
-    if (cat) query = query.eq("category_id", cat.id);
-  }
-  // Market filter takes precedence over manual city/state inputs
+
+  if (activeCategory) query = query.eq("category_id", activeCategory.id);
+
   if (activeMarket) {
     query = query.in("city", activeMarket.cities);
   } else {
     if (searchParams.city) query = query.ilike("city", `%${searchParams.city}%`);
     if (searchParams.state) query = query.ilike("state", `%${searchParams.state}%`);
   }
-  if (searchParams.min_rating) query = query.gte("avg_rating", parseFloat(searchParams.min_rating));
 
-  const { data: vendors, count } = await query
-    .order("is_featured", { ascending: false })
-    .order("avg_rating", { ascending: false })
-    .range(from, from + PER_PAGE - 1);
+  if (searchParams.min_rating) {
+    query = query.gte("avg_rating", parseFloat(searchParams.min_rating));
+  }
 
+  // ── Sorting ──────────────────────────────────────────────────────────────────
+  switch (sort) {
+    case "most_reviewed":
+      query = query.order("review_count", { ascending: false });
+      break;
+    case "newest":
+      query = query.order("created_at", { ascending: false });
+      break;
+    case "alpha":
+      query = query.order("business_name", { ascending: true });
+      break;
+    case "featured":
+      query = query
+        .order("is_featured", { ascending: false })
+        .order("avg_rating", { ascending: false });
+      break;
+    case "best_rated":
+    default:
+      query = query
+        .order("is_featured", { ascending: false })
+        .order("avg_rating", { ascending: false })
+        .order("review_count", { ascending: false });
+  }
+
+  const { data: vendors, count } = await query.range(from, from + PER_PAGE - 1);
   const totalPages = Math.ceil((count ?? 0) / PER_PAGE);
-  const activeCategory = (categories as Category[])?.find((c) => c.slug === searchParams.category);
 
+  // ── Active filter pills ───────────────────────────────────────────────────────
   function buildHref(params: Record<string, string | undefined>) {
     const p = new URLSearchParams();
-    const merged = {
+    const merged: Record<string, string | undefined> = {
       q: searchParams.q,
       category: searchParams.category,
       city: searchParams.city,
       state: searchParams.state,
       market: searchParams.market,
       min_rating: searchParams.min_rating,
+      sort: sort !== "best_rated" ? sort : undefined,
       ...params,
     };
     Object.entries(merged).forEach(([k, v]) => { if (v) p.set(k, v); });
-    return `/vendors?${p.toString()}`;
+    return `/vendors${p.toString() ? `?${p.toString()}` : ""}`;
   }
 
+  type FilterPill = { label: string; href: string };
+  const activeFilters: FilterPill[] = [];
+  if (searchParams.q) activeFilters.push({ label: `"${searchParams.q}"`, href: buildHref({ q: undefined, page: undefined }) });
+  if (activeCategory) activeFilters.push({ label: activeCategory.name, href: buildHref({ category: undefined, page: undefined }) });
+  if (activeMarket) activeFilters.push({ label: activeMarket.name, href: buildHref({ market: undefined, page: undefined }) });
+  if (searchParams.city) activeFilters.push({ label: searchParams.city, href: buildHref({ city: undefined, page: undefined }) });
+  if (searchParams.state) activeFilters.push({ label: searchParams.state, href: buildHref({ state: undefined, page: undefined }) });
+  if (searchParams.min_rating) activeFilters.push({ label: `${searchParams.min_rating}★ & up`, href: buildHref({ min_rating: undefined, page: undefined }) });
+  const hasActiveFilters = activeFilters.length > 0;
+
+  const headingText = activeCategory
+    ? activeCategory.name
+    : activeMarket
+    ? `${activeMarket.name} Vendors`
+    : "Browse Vendors";
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">
-        {activeCategory ? activeCategory.name : activeMarket ? `${activeMarket.name} Vendors` : "Browse All Vendors"}
-      </h1>
-      <p className="text-gray-500 mb-8">
-        {count ?? 0} provider{count !== 1 ? "s" : ""} found
-        {activeMarket ? ` in ${activeMarket.name}` : searchParams.city ? ` in ${searchParams.city}` : ""}
-      </p>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">{headingText}</h1>
+        <p className="text-gray-500 mt-1">
+          {count ?? 0} provider{count !== 1 ? "s" : ""} found
+          {activeMarket ? ` in ${activeMarket.name}` : ""}
+        </p>
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* ─── Sidebar ─── */}
-        <aside className="w-full lg:w-64 shrink-0 space-y-6">
-          {/* Search */}
-          <form method="GET" action="/vendors">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                name="q"
-                defaultValue={searchParams.q}
-                className="input pl-9"
-                placeholder="Search vendors…"
-              />
-            </div>
-            {searchParams.category && <input type="hidden" name="category" value={searchParams.category} />}
-            {searchParams.city && <input type="hidden" name="city" value={searchParams.city} />}
-          </form>
-
-          {/* Market filter */}
-          {markets && (markets as Market[]).length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Market</h3>
-              <div className="space-y-1">
-                <a
-                  href={buildHref({ market: undefined, city: undefined, state: undefined, page: undefined })}
-                  className={`block rounded-lg px-3 py-2 text-sm transition ${
-                    !searchParams.market ? "bg-brand-50 text-brand-700 font-medium" : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  All Markets
-                </a>
-                {(markets as Market[]).map((m) => (
-                  <a
-                    key={m.id}
-                    href={buildHref({ market: m.slug, city: undefined, state: undefined, page: undefined })}
-                    className={`block rounded-lg px-3 py-2 text-sm transition ${
-                      searchParams.market === m.slug
-                        ? "bg-brand-50 text-brand-700 font-medium"
-                        : "text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    {m.name}
-                    <span className="ml-1 text-xs text-gray-400">({m.state})</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Manual location filter — hidden when a market is active */}
-          {!activeMarket && (
-            <form method="GET" action="/vendors" className="space-y-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1">
-                <SlidersHorizontal className="h-3 w-3" /> Custom Location
-              </h3>
-              <input name="city" defaultValue={searchParams.city} className="input" placeholder="City" />
-              <input name="state" defaultValue={searchParams.state} className="input" placeholder="State (e.g. FL)" />
-              {searchParams.q && <input type="hidden" name="q" value={searchParams.q} />}
-              {searchParams.category && <input type="hidden" name="category" value={searchParams.category} />}
-              <button type="submit" className="btn-secondary w-full justify-center text-xs">Apply</button>
-            </form>
-          )}
+        {/* ─── Sidebar ───────────────────────────────────────────────────────── */}
+        <aside className="w-full lg:w-60 shrink-0 space-y-6">
+          {/* Search + market + sort (client controls) */}
+          <VendorSearchControls markets={(markets as Market[]) ?? []} />
 
           {/* Rating filter */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Min Rating</h3>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {[null, "4", "3", "2"].map((r) => (
                 <a
                   key={r ?? "any"}
                   href={buildHref({ min_rating: r ?? undefined, page: undefined })}
-                  className={`block rounded-lg px-3 py-2 text-sm transition ${
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition ${
                     (searchParams.min_rating ?? null) === r
                       ? "bg-brand-50 text-brand-700 font-medium"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  {r ? `${r}★ & up` : "Any rating"}
+                  {r ? (
+                    <>
+                      <span className="text-amber-400">{"★".repeat(parseInt(r))}</span>
+                      <span>{r}+ stars</span>
+                    </>
+                  ) : "Any rating"}
                 </a>
               ))}
             </div>
@@ -171,7 +166,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
           {/* Category filter */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Category</h3>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <a
                 href={buildHref({ category: undefined, page: undefined })}
                 className={`block rounded-lg px-3 py-2 text-sm transition ${
@@ -197,8 +192,29 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
           </div>
         </aside>
 
-        {/* ─── Results grid ─── */}
-        <div className="flex-1">
+        {/* ─── Results ───────────────────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0">
+          {/* Active filter pills */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+              {activeFilters.map((f) => (
+                <Link
+                  key={f.label}
+                  href={f.href}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+                >
+                  {f.label} <X className="h-3 w-3" />
+                </Link>
+              ))}
+              <Link
+                href="/vendors"
+                className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 ml-1"
+              >
+                Clear all
+              </Link>
+            </div>
+          )}
+
           {vendors && vendors.length > 0 ? (
             <>
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -209,11 +225,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
               {totalPages > 1 && (
                 <div className="mt-10 flex items-center justify-center gap-2">
                   {page > 1 && (
-                    <a href={buildHref({ page: String(page - 1) })} className="btn-secondary px-3 py-1.5 text-xs">← Prev</a>
+                    <a href={buildHref({ page: String(page - 1) })} className="btn-secondary px-4 py-2 text-sm">← Prev</a>
                   )}
                   <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
                   {page < totalPages && (
-                    <a href={buildHref({ page: String(page + 1) })} className="btn-secondary px-3 py-1.5 text-xs">Next →</a>
+                    <a href={buildHref({ page: String(page + 1) })} className="btn-secondary px-4 py-2 text-sm">Next →</a>
                   )}
                 </div>
               )}
@@ -221,8 +237,13 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
           ) : (
             <div className="text-center py-20 text-gray-400">
               <Search className="mx-auto h-10 w-10 mb-3 opacity-30" />
-              <p className="text-lg font-medium">No vendors found</p>
-              <p className="text-sm mt-1">Try adjusting your filters or search term.</p>
+              <p className="text-lg font-medium text-gray-600">No vendors found</p>
+              <p className="text-sm mt-1">Try adjusting your search or filters.</p>
+              {hasActiveFilters && (
+                <Link href="/vendors" className="btn-secondary mt-4 text-sm inline-flex">
+                  Clear all filters
+                </Link>
+              )}
             </div>
           )}
         </div>
