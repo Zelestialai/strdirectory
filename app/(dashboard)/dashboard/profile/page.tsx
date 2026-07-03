@@ -267,4 +267,30 @@ export default function EditProfilePage() {
               <input {...register("state")} className="input" placeholder="FL" maxLength={2} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700
+              <label className="block text-sm font-medium text-gray-700 mb-1">ZIP</label>
+              <input {...register("zip")} className="input" placeholder="33101" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Service Radius (miles)</label>
+            <input
+              {...register("service_radius")}
+              type="number"
+              min="0"
+              max="500"
+              className="input w-32"
+              placeholder="25"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button type="submit" disabled={isSubmitting} className="btn-primary px-8">
+            {isSubmitting ? "Saving…" : existingVendorId ? "Save Changes" : "Create Listing"}
+          </button>
+          {saved && <span className="text-sm text-green-600 font-medium">✓ Saved successfully</span>}
+        </div>
+      </form>
+    </div>
+  );
+}

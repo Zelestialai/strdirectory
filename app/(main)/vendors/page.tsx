@@ -243,4 +243,14 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
               <p className="text-lg font-medium text-gray-600">No vendors found</p>
               <p className="text-sm mt-1">Try adjusting your search or filters.</p>
               {hasActiveFilters && (
-                <Link href="/vendors" className="btn-s
+                <Link href="/vendors" className="btn-secondary mt-4 text-sm inline-flex">
+                  Clear all filters
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

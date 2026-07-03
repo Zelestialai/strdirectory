@@ -123,4 +123,25 @@ export default async function DashboardPage({
             </div>
           </div>
           <Link href="/dashboard/upgrade" className="shrink-0 btn-primary text-xs px-4 py-2">
-        
+            See Plans →
+          </Link>
+        </div>
+      )}
+
+      {/* Quick links */}
+      <div className="card p-5 space-y-2">
+        <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
+        {[
+          { href: "/dashboard/profile", label: "Edit your listing" },
+          { href: "/dashboard/inquiries", label: `View inquiries (${inquiryCount ?? 0} new)` },
+          { href: "/dashboard/reviews", label: "See your reviews" },
+          { href: `/vendors/${v.slug}`, label: "Preview public profile" },
+        ].map(({ href, label }) => (
+          <Link key={href} href={href} className="flex items-center justify-between rounded-lg p-3 text-sm text-gray-700 hover:bg-gray-50 transition">
+            {label} <ArrowRight className="h-4 w-4 text-gray-400" />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}

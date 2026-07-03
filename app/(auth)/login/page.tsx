@@ -67,4 +67,16 @@ function LoginForm() {
 
       <p className="mt-4 text-center text-sm text-gray-500">
         Don't have an account?{" "}
-        <Link href="/register" className="te
+        <Link href="/register" className="text-brand-600 font-medium hover:underline">Create one</Link>
+      </p>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-sm h-80 bg-white rounded-2xl animate-pulse" />}>
+      <LoginForm />
+    </Suspense>
+  );
+}

@@ -135,4 +135,56 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-gray-800">{inq.sender_name ?? "Anonymous"}</p>
-                 
+                    <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[inq.status] ?? STATUS_STYLES.read}`}>
+                      {inq.status}
+                    </span>
+                  </div>
+                  {inq.sender_email && (
+                    <a href={`mailto:${inq.sender_email}`} className="text-sm text-brand-600 hover:underline block">
+                      {inq.sender_email}
+                    </a>
+                  )}
+                  {inq.sender_phone && (
+                    <a href={`tel:${inq.sender_phone}`} className="text-sm text-gray-500 block">
+                      {inq.sender_phone}
+                    </a>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 whitespace-nowrap shrink-0">{formatDate(inq.created_at)}</p>
+              </div>
+
+              <p className="mt-3 text-sm text-gray-700 bg-gray-50 rounded-lg p-3 leading-relaxed">
+                {inq.message}
+              </p>
+
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                {inq.sender_email && (
+                  <a
+                    href={`mailto:${inq.sender_email}?subject=Re: Your inquiry on STR Pro Directory`}
+                    className="btn-primary text-xs"
+                  >
+                    Reply via Email
+                  </a>
+                )}
+                <InquiryStatusButton
+                  inquiryId={inq.id}
+                  currentStatus={inq.status}
+                  updateStatus={updateStatus}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="card p-12 text-center text-gray-400">
+          <MessageSquare className="mx-auto h-10 w-10 opacity-30 mb-3" />
+          <p>
+            {activeFilter
+              ? `No ${FILTERS.find(f => f.value === activeFilter)?.label.toLowerCase()} messages.`
+              : "No messages yet. Share your profile to start receiving inquiries!"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

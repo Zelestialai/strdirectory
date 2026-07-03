@@ -100,4 +100,5 @@ export async function GET(req: NextRequest) {
   }
 
   // Redirect to the Supabase magic link — it logs them in and then sends to /dashboard
-  return NextResponse.redirec
+  return NextResponse.redirect(linkData.properties.action_link);
+}
