@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { VendorCard } from "@/components/VendorCard";
 import type { Market, Vendor, Category } from "@/types";
 import { MapPin, ChevronRight, Users, Star, LayoutGrid } from "lucide-react";
@@ -15,8 +16,8 @@ interface PageProps {
 
 // Pre-render all active market slugs at build time
 export async function generateStaticParams() {
-  const supabase = createClient();
-  const { data } = await supabase
+  // Use service-role client — no request scope available at build time
+  const { data } = await supabaseAdmin
     .from("markets")
     .select("slug")
     .eq("is_active", true);
