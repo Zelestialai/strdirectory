@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
 import { VendorCard } from "@/components/VendorCard";
 import type { Market, Vendor, Category } from "@/types";
 import { MapPin, ChevronRight, Users, Star, LayoutGrid } from "lucide-react";
@@ -16,8 +15,8 @@ interface PageProps {
 
 // Pre-render all active market slugs at build time
 export async function generateStaticParams() {
-  // Use service-role client — no request scope available at build time
-  const { data } = await supabaseAdmin
+  const supabase = createClient();
+  const { data } = await supabase
     .from("markets")
     .select("slug")
     .eq("is_active", true);
@@ -34,7 +33,7 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (!market) return { title: "Market Not Found" };
 
-  const title = `${market.name} STR Service Providers — STR Pro Directory`;
+  const title = `${market.name} STR Service Providers — StrVend`;
   const description =
     market.description ||
     market.tagline ||
@@ -179,194 +178,4 @@ export default async function MarketPage({ params, searchParams }: PageProps) {
           </nav>
 
           <div className="flex items-center gap-2 mb-2">
-            <MapPin className="h-5 w-5 text-brand-300" />
-            <span className="text-brand-300 text-sm font-medium">{m.state}</span>
-          </div>
-          <h1 className="text-3xl font-bold sm:text-4xl">
-            STR Service Providers in {m.name}
-          </h1>
-          {m.tagline && (
-            <p className="mt-2 text-brand-200 text-lg max-w-2xl">{m.tagline}</p>
-          )}
-
-          {/* Cities */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {m.cities.map((city) => (
-              <span
-                key={city}
-                className="rounded-full bg-white/10 border border-white/20 px-3 py-1 text-xs text-white/90"
-              >
-                {city}
-              </span>
-            ))}
-          </div>
-
-          {/* Stats bar */}
-          <div className="mt-6 flex flex-wrap gap-6">
-            {[
-              { icon: Users, label: `${totalVendors} provider${totalVendors !== 1 ? "s" : ""}` },
-              { icon: LayoutGrid, label: `${categoriesPresent} categor${categoriesPresent !== 1 ? "ies" : "y"}` },
-              { icon: Star, label: `${totalReviews} review${totalReviews !== 1 ? "s" : ""}` },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-1.5 text-brand-200 text-sm">
-                <Icon className="h-4 w-4 text-brand-300" />
-                {label}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-
-          {/* Sidebar */}
-          <aside className="w-full lg:w-56 shrink-0 space-y-6">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-                Browse by Category
-              </h3>
-              <div className="space-y-0.5">
-                <Link
-                  href={`/markets/${m.slug}`}
-                  className={`block rounded-lg px-3 py-2 text-sm transition ${
-                    !activeCategory
-                      ? "bg-brand-50 text-brand-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  All Categories
-                </Link>
-                {categorySections.map((cat) => {
-                  const count = vendorsByCategory.get(cat.id)?.length ?? 0;
-                  return (
-                    <Link
-                      key={cat.id}
-                      href={`/markets/${m.slug}?category=${cat.slug}`}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
-                        activeCategory?.id === cat.id
-                          ? "bg-brand-50 text-brand-700 font-medium"
-                          : "text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span>{cat.name}</span>
-                      <span className="text-xs text-gray-400">{count}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Related markets */}
-            {relatedMarkets && relatedMarkets.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-                  More in {m.state}
-                </h3>
-                <div className="space-y-0.5">
-                  {relatedMarkets.map((rm) => (
-                    <Link
-                      key={rm.id}
-                      href={`/markets/${rm.slug}`}
-                      className="block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition"
-                    >
-                      {rm.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </aside>
-
-          {/* Main panel */}
-          <div className="flex-1 min-w-0">
-
-            {/* ── Category-filtered view ── */}
-            {activeCategory && (
-              <div>
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {activeCategory.name} in {m.name}
-                  </h2>
-                  <Link href={`/markets/${m.slug}`} className="text-xs text-brand-600 hover:underline">
-                    ← All categories
-                  </Link>
-                </div>
-                <p className="text-sm text-gray-500 mb-6">
-                  {filteredVendors.length} provider{filteredVendors.length !== 1 ? "s" : ""}
-                </p>
-                {filteredVendors.length > 0 ? (
-                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                    {filteredVendors.map((v) => (
-                      <VendorCard key={v.id} vendor={v} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-20 text-gray-400">
-                    <p className="text-lg font-medium">No providers found</p>
-                    <Link href={`/markets/${m.slug}`} className="text-sm text-brand-600 mt-2 block hover:underline">
-                      View all categories →
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Category spotlight sections ── */}
-            {!activeCategory && (
-              <div className="space-y-12">
-                {categorySections.map((cat) => {
-                  const catVendors = vendorsByCategory.get(cat.id) ?? [];
-                  const top3 = catVendors.slice(0, 3);
-                  const remaining = catVendors.length - top3.length;
-                  return (
-                    <section key={cat.id}>
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900">{cat.name}</h2>
-                        {remaining > 0 && (
-                          <Link
-                            href={`/markets/${m.slug}?category=${cat.slug}`}
-                            className="text-sm text-brand-600 hover:text-brand-700 font-medium transition"
-                          >
-                            View all {catVendors.length} →
-                          </Link>
-                        )}
-                      </div>
-
-                      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                        {top3.map((v) => (
-                          <VendorCard key={v.id} vendor={v} />
-                        ))}
-                      </div>
-
-                      {remaining > 0 && (
-                        <div className="mt-4 text-center">
-                          <Link
-                            href={`/markets/${m.slug}?category=${cat.slug}`}
-                            className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium border border-brand-200 rounded-lg px-4 py-2 hover:bg-brand-50 transition"
-                          >
-                            See {remaining} more {cat.name.toLowerCase()} provider{remaining !== 1 ? "s" : ""} in {m.name}
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Link>
-                        </div>
-                      )}
-                    </section>
-                  );
-                })}
-
-                {categorySections.length === 0 && (
-                  <div className="text-center py-20 text-gray-400">
-                    <MapPin className="mx-auto h-10 w-10 mb-3 opacity-30" />
-                    <p className="text-lg font-medium">No providers yet in {m.name}</p>
-                    <p className="text-sm mt-1">Check back soon — we're adding vendors regularly.</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+            <MapPin className="h-5 w-5 text-b

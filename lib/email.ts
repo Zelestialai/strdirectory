@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "STR Pro Directory <noreply@strprodirectory.com>";
+export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "StrVend <noreply@strvend.com>";
 export const SITE_URL   = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export interface InquiryEmailData {
@@ -36,7 +36,7 @@ export async function sendInquiryNotification(data: InquiryEmailData) {
           <!-- Header -->
           <tr>
             <td style="background:#0369a1;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">STR Pro Directory</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">StrVend</h1>
               <p style="margin:6px 0 0;color:#bae6fd;font-size:13px;">New inquiry received</p>
             </td>
           </tr>
@@ -48,7 +48,7 @@ export async function sendInquiryNotification(data: InquiryEmailData) {
                 Hi <strong>${data.vendorName}</strong>,
               </p>
               <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-                You have a new inquiry from <strong>${data.senderName}</strong> on your STR Pro Directory listing.
+                You have a new inquiry from <strong>${data.senderName}</strong> on your StrVend listing.
               </p>
 
               <!-- Sender info card -->
@@ -76,7 +76,7 @@ export async function sendInquiryNotification(data: InquiryEmailData) {
               <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="padding-right:12px;">
-                    <a href="mailto:${data.senderEmail}?subject=Re: Your inquiry on STR Pro Directory"
+                    <a href="mailto:${data.senderEmail}?subject=Re: Your inquiry on StrVend"
                       style="display:inline-block;background:#0369a1;color:#ffffff;font-size:14px;font-weight:600;
                              text-decoration:none;padding:10px 20px;border-radius:8px;">
                       Reply to ${data.senderName}
@@ -100,10 +100,10 @@ export async function sendInquiryNotification(data: InquiryEmailData) {
                        padding:20px 32px;text-align:center;">
               <p style="margin:0 0 6px;font-size:12px;color:#9ca3af;">
                 This email was sent because someone contacted you via
-                <a href="${profileUrl}" style="color:#0369a1;">your STR Pro Directory listing</a>.
+                <a href="${profileUrl}" style="color:#0369a1;">your StrVend listing</a>.
               </p>
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © ${new Date().getFullYear()} STR Pro Directory
+                © ${new Date().getFullYear()} StrVend
               </p>
             </td>
           </tr>
@@ -118,7 +118,7 @@ export async function sendInquiryNotification(data: InquiryEmailData) {
   return resend.emails.send({
     from:    FROM_EMAIL,
     to:      data.vendorEmail,
-    subject: `New inquiry from ${data.senderName} — STR Pro Directory`,
+    subject: `New inquiry from ${data.senderName} — StrVend`,
     html,
   });
 }
@@ -150,7 +150,7 @@ export async function sendClaimVerificationEmail(data: ClaimEmailData) {
           <!-- Header -->
           <tr>
             <td style="background:#0369a1;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">STR Pro Directory</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">StrVend</h1>
               <p style="margin:6px 0 0;color:#bae6fd;font-size:13px;">Verify your listing claim</p>
             </td>
           </tr>
@@ -162,7 +162,7 @@ export async function sendClaimVerificationEmail(data: ClaimEmailData) {
                 Hi <strong>${data.contactName}</strong>,
               </p>
               <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-                You requested to claim the listing for <strong>${data.vendorName}</strong> on STR Pro Directory.
+                You requested to claim the listing for <strong>${data.vendorName}</strong> on StrVend.
                 Click the button below to verify your email and instantly claim your listing.
               </p>
 
@@ -211,7 +211,7 @@ export async function sendClaimVerificationEmail(data: ClaimEmailData) {
                 Or copy this link: <a href="${data.verifyUrl}" style="color:#0369a1;word-break:break-all;">${data.verifyUrl}</a>
               </p>
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © ${new Date().getFullYear()} STR Pro Directory
+                © ${new Date().getFullYear()} StrVend
               </p>
             </td>
           </tr>
@@ -226,7 +226,8 @@ export async function sendClaimVerificationEmail(data: ClaimEmailData) {
   return resend.emails.send({
     from:    FROM_EMAIL,
     to:      data.email,
-    subject: `Verify your claim for ${data.vendorName} — STR Pro Directory`,
+    subject: `Verify your claim for ${data.vendorName} — StrVend`,
     html,
   });
 }
+                                                                                                                      

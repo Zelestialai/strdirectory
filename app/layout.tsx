@@ -4,8 +4,8 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: { default: "STR Pro Directory", template: "%s | STR Pro Directory" },
-  description: "Find trusted service providers for your short-term rental — cleaning, photography, maintenance, and more.",
+  title: { default: "StrVend", template: "%s | StrVend" },
+  description: "Find trusted STR service providers near you — cleaning, photography, property management, and more. The vendor directory built for short-term rental hosts.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +15,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
-      </body>
-    </html>
-  );
-}
+   

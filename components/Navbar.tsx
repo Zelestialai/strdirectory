@@ -183,7 +183,7 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 text-brand-700 font-bold text-lg shrink-0">
           <Building2 className="h-5 w-5" />
-          STR Pro Directory
+          StrVend
         </Link>
 
         {/* Desktop nav */}
@@ -329,3 +329,4 @@ export function Navbar() {
     </header>
   );
 }
+          
