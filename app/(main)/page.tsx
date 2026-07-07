@@ -35,18 +35,10 @@ export default async function HomePage() {
     .order("avg_rating", { ascending: false })
     .limit(6);
 
-  const { data: recent } = await supabase
-    .from("vendors")
-    .select("*, category:categories(*)")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(6);
-
   return (
     <div>
       {/* ── Hero ── */}
       <section className="relative bg-brand-700 text-white overflow-hidden">
-        {/* Subtle background texture */}
         <div className="absolute inset-0 opacity-5">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -57,12 +49,10 @@ export default async function HomePage() {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
         </div>
-        {/* Decorative blobs */}
         <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-brand-600 opacity-40" />
         <div className="absolute -bottom-10 -left-10 w-56 h-56 rounded-full bg-brand-800 opacity-50" />
 
         <div className="relative mx-auto max-w-4xl px-4 pt-20 pb-16 text-center sm:px-6 lg:px-8">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm font-medium text-brand-100 mb-8">
             <MapPin className="h-3.5 w-3.5 text-coral-400" />
             The STR Vendor Directory
@@ -77,7 +67,6 @@ export default async function HomePage() {
             Cleaners, photographers, property managers, and more — all vetted and reviewed by real STR hosts.
           </p>
 
-          {/* Search bar */}
           <form action="/vendors" method="GET" className="mt-10 flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -95,7 +84,6 @@ export default async function HomePage() {
             </button>
           </form>
 
-          {/* Stats row */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             {[
               { value: "2,400+", label: "Verified vendors" },
@@ -110,7 +98,6 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Trust pills */}
         <div className="relative border-t border-white/10 bg-brand-800/60">
           <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 flex flex-wrap items-center justify-center gap-4 sm:gap-8">
             {[
@@ -129,12 +116,9 @@ export default async function HomePage() {
       </section>
 
       {/* ── Browse by Category ── */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">What are you looking for?</p>
-            <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
           <Link href="/vendors" className="text-sm text-brand-600 font-medium hover:text-brand-800 transition hidden sm:block">
             All vendors →
           </Link>
@@ -148,11 +132,10 @@ export default async function HomePage() {
 
       {/* ── Browse by Market ── */}
       {markets && markets.length > 0 && (
-        <section className="bg-gray-50 py-16">
+        <section className="bg-gray-50 py-14">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-8">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">Where are your properties?</p>
                 <h2 className="text-2xl font-bold text-gray-900">Browse by Market</h2>
                 <p className="mt-1 text-sm text-gray-500">Covers each city and all surrounding STR hotspots.</p>
               </div>
@@ -175,15 +158,12 @@ export default async function HomePage() {
 
       {/* ── Featured vendors ── */}
       {featured && featured.length > 0 && (
-        <section className="py-16">
+        <section className="py-14">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-8">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">Hand-picked by our team</p>
-                <h2 className="text-2xl font-bold text-gray-900">Featured Vendors</h2>
-              </div>
-              <Link href="/vendors?featured=true" className="text-sm text-brand-600 font-medium hover:text-brand-800 transition hidden sm:block">
-                View all →
+              <h2 className="text-2xl font-bold text-gray-900">Featured Vendors</h2>
+              <Link href="/vendors" className="text-sm text-brand-600 font-medium hover:text-brand-800 transition hidden sm:block">
+                Browse all →
               </Link>
             </div>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -193,31 +173,10 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── Recently joined ── */}
-      {recent && recent.length > 0 && (
-        <section className="bg-gray-50 py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">New on STRVend</p>
-                <h2 className="text-2xl font-bold text-gray-900">Recently Joined</h2>
-              </div>
-              <Link href="/vendors" className="text-sm text-brand-600 font-medium hover:text-brand-800 transition hidden sm:block">
-                See all vendors →
-              </Link>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {(recent as Vendor[]).map((v) => <VendorCard key={v.id} vendor={v} />)}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── Why STRVend? ── */}
-      <section className="bg-brand-700 text-white py-20">
+      <section className="bg-brand-700 text-white py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-300 mb-3">Why choose us</p>
-          <h2 className="text-3xl font-bold mb-12">Why STRVend?</h2>
+          <h2 className="text-2xl font-bold mb-10">Why STRVend?</h2>
           <div className="grid gap-10 sm:grid-cols-3">
             {[
               {
@@ -237,7 +196,7 @@ export default async function HomePage() {
               },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex flex-col items-center gap-4">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 border border-white/10">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 border border-white/10">
                   <Icon className="h-6 w-6 text-coral-400" />
                 </span>
                 <h3 className="font-semibold text-lg">{title}</h3>
@@ -249,10 +208,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Vendor CTA ── */}
-      <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
-        <div className="inline-flex items-center gap-2 rounded-full bg-coral-50 px-4 py-1.5 text-sm font-medium text-coral-600 mb-6">
-          🏠 For service providers
-        </div>
+      <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
         <h2 className="text-3xl font-bold text-gray-900">Are you a service provider?</h2>
         <p className="mt-4 text-gray-500 text-lg">
           Create a free listing and start connecting with STR hosts in your area today.
