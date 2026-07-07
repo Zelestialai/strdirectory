@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: { default: "StrVend", template: "%s | StrVend" },
+  title: { default: "STRVend", template: "%s | STRVend" },
   description: "Find trusted STR service providers near you — cleaning, photography, property management, and more. The vendor directory built for short-term rental hosts.",
 };
 

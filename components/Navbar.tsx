@@ -3,9 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Menu, X, Building2, ChevronDown, MapPin } from "lucide-react";
+import { Menu, X, ChevronDown, MapPin } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import type { Category } from "@/types";
 
 const ALL_MARKETS = [
   // Tier 1
@@ -143,6 +142,22 @@ const ALL_CATEGORIES = [
   { name: "Legal & Regulations",         slug: "legal-regulations" },
 ];
 
+function STRVendLogo({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex items-center gap-2.5 ${className}`}>
+      <div className="w-8 h-8 rounded-lg bg-coral-500 flex items-center justify-center shrink-0">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 1.5L0.75 8.25H3V16.5H7.5V12H10.5V16.5H15V8.25H17.25L9 1.5Z" fill="white"/>
+        </svg>
+      </div>
+      <span className="font-bold text-lg tracking-tight leading-none">
+        <span className="text-brand-600">STR</span>
+        <span className="text-gray-900">Vend</span>
+      </span>
+    </div>
+  );
+}
+
 export function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -162,7 +177,6 @@ export function Navbar() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (catRef.current && !catRef.current.contains(e.target as Node)) setCatMenuOpen(false);
@@ -178,43 +192,44 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 text-brand-700 font-bold text-lg shrink-0">
-          <Building2 className="h-5 w-5" />
-          StrVend
+        <Link href="/">
+          <STRVendLogo />
         </Link>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600">
-          <Link href="/vendors" className="hover:text-brand-700 transition">All Vendors</Link>
+          <Link href="/vendors" className="hover:text-brand-600 transition font-medium">All Vendors</Link>
 
           {/* Markets dropdown */}
           <div ref={mktRef} className="relative">
             <button
               onClick={() => { setMktMenuOpen(!mktMenuOpen); setCatMenuOpen(false); }}
-              className="flex items-center gap-1 hover:text-brand-700 transition"
+              className="flex items-center gap-1 hover:text-brand-600 transition font-medium"
             >
-              <MapPin className="h-3 w-3" />
-              Markets <ChevronDown className={`h-3 w-3 transition-transform ${mktMenuOpen ? "rotate-180" : ""}`} />
+              <MapPin className="h-3.5 w-3.5" />
+              Markets
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${mktMenuOpen ? "rotate-180" : ""}`} />
             </button>
             {mktMenuOpen && (
-              <div className="absolute left-0 mt-2 w-[48rem] rounded-xl border bg-white shadow-xl py-2 z-50 max-h-[70vh] overflow-y-auto">
+              <div className="absolute left-0 mt-2 w-[52rem] rounded-2xl border border-gray-100 bg-white shadow-2xl py-3 z-50 max-h-[70vh] overflow-y-auto">
                 <Link
                   href="/markets"
                   onClick={() => setMktMenuOpen(false)}
-                  className="block px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition border-b border-gray-100 mb-1"
+                  className="flex items-center justify-between mx-3 px-3 py-2 rounded-lg text-sm font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 transition mb-2"
                 >
-                  All Markets →
+                  <span>Browse all 106 markets</span>
+                  <span className="text-brand-500">→</span>
                 </Link>
-                <div className="grid grid-cols-4">
+                <div className="grid grid-cols-4 px-1">
                   {ALL_MARKETS.map((m) => (
                     <Link
                       key={m.slug}
                       href={`/markets/${m.slug}`}
                       onClick={() => setMktMenuOpen(false)}
-                      className="flex items-center justify-between px-4 py-1.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition"
+                      className="flex items-center justify-between px-3 py-1.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 rounded-lg transition"
                     >
                       <span>{m.name}</span>
                       <span className="text-xs text-gray-400 ml-1">{m.state}</span>
@@ -228,13 +243,14 @@ export function Navbar() {
           {/* Categories dropdown */}
           <div ref={catRef} className="relative">
             <button
-              onClick={() => setCatMenuOpen(!catMenuOpen)}
-              className="flex items-center gap-1 hover:text-brand-700 transition"
+              onClick={() => { setCatMenuOpen(!catMenuOpen); setMktMenuOpen(false); }}
+              className="flex items-center gap-1 hover:text-brand-600 transition font-medium"
             >
-              Categories <ChevronDown className={`h-3 w-3 transition-transform ${catMenuOpen ? "rotate-180" : ""}`} />
+              Categories
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${catMenuOpen ? "rotate-180" : ""}`} />
             </button>
             {catMenuOpen && (
-              <div className="absolute left-0 mt-2 w-64 rounded-xl border bg-white shadow-xl py-2 z-50">
+              <div className="absolute left-0 mt-2 w-68 rounded-2xl border border-gray-100 bg-white shadow-2xl py-2 z-50">
                 {ALL_CATEGORIES.map((cat) => (
                   <Link
                     key={cat.slug}
@@ -256,72 +272,81 @@ export function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50 transition"
               >
-                {user.email?.split("@")[0]} <ChevronDown className="h-3 w-3" />
+                <span className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold flex items-center justify-center">
+                  {user.email?.[0]?.toUpperCase()}
+                </span>
+                {user.email?.split("@")[0]}
+                <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-44 rounded-xl border bg-white shadow-lg py-1 z-50">
-                  <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-50">My Dashboard</Link>
-                  <Link href="/dashboard/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-50">Edit Profile</Link>
-                  <hr className="my-1" />
-                  <button onClick={signOut} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Sign Out</button>
+                <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-gray-100 bg-white shadow-xl py-1.5 z-50">
+                  <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-50 transition">My Dashboard</Link>
+                  <Link href="/dashboard/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-50 transition">Edit Profile</Link>
+                  <hr className="my-1.5 border-gray-100" />
+                  <button onClick={signOut} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">Sign Out</button>
                 </div>
               )}
             </div>
           ) : (
             <>
-              <Link href="/login" className="btn-secondary py-1.5">Sign In</Link>
-              <Link href="/register" className="btn-primary py-1.5">List Your Business</Link>
+              <Link href="/login" className="btn-secondary py-1.5 text-sm">Sign In</Link>
+              <Link
+                href="/register"
+                className="rounded-lg bg-coral-500 px-4 py-2 text-sm font-semibold text-white hover:bg-coral-600 transition shadow-sm"
+              >
+                List Your Business
+              </Link>
             </>
           )}
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
+        <button className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 transition" onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t bg-white px-4 py-4 space-y-1 text-sm max-h-[80vh] overflow-y-auto">
-          <Link href="/vendors" className="block py-2 font-medium text-brand-700" onClick={() => setMenuOpen(false)}>
+        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-1 text-sm max-h-[80vh] overflow-y-auto">
+          <Link href="/vendors" className="block py-2 font-semibold text-brand-700" onClick={() => setMenuOpen(false)}>
             All Vendors
           </Link>
-          <p className="pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Markets</p>
+          <p className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Markets</p>
           {ALL_MARKETS.map((m) => (
             <Link
               key={m.slug}
               href={`/markets/${m.slug}`}
-              className="flex items-center justify-between py-1.5 text-gray-600 hover:text-brand-700"
+              className="flex items-center justify-between py-1.5 text-gray-600 hover:text-brand-700 transition"
               onClick={() => setMenuOpen(false)}
             >
               <span>{m.name}</span>
               <span className="text-xs text-gray-400">{m.state}</span>
             </Link>
           ))}
-          <p className="pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Categories</p>
+          <p className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Categories</p>
           {ALL_CATEGORIES.map((cat) => (
             <Link
               key={cat.slug}
               href={`/vendors?category=${cat.slug}`}
-              className="block py-1.5 text-gray-600 hover:text-brand-700"
+              className="block py-1.5 text-gray-600 hover:text-brand-700 transition"
               onClick={() => setMenuOpen(false)}
             >
               {cat.name}
             </Link>
           ))}
-          <hr className="my-2" />
+          <hr className="my-3 border-gray-100" />
           {user ? (
             <>
-              <Link href="/dashboard" className="block py-1.5" onClick={() => setMenuOpen(false)}>My Dashboard</Link>
-              <button onClick={signOut} className="text-red-600 py-1.5">Sign Out</button>
+              <Link href="/dashboard" className="block py-2 font-medium" onClick={() => setMenuOpen(false)}>My Dashboard</Link>
+              <button onClick={signOut} className="block py-2 text-red-600">Sign Out</button>
             </>
           ) : (
             <div className="flex gap-2 pt-2">
-              <Link href="/login" className="btn-secondary flex-1 justify-center">Sign In</Link>
-              <Link href="/register" className="btn-primary flex-1 justify-center">List Business</Link>
+              <Link href="/login" className="btn-secondary flex-1 justify-center text-sm">Sign In</Link>
+              <Link href="/register" className="flex-1 flex justify-center items-center rounded-lg bg-coral-500 py-2 text-sm font-semibold text-white hover:bg-coral-600 transition">List Business</Link>
             </div>
           )}
         </div>
