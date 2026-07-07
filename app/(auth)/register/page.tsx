@@ -147,4 +147,30 @@ export default function RegisterPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input {...register("email")} type="email" className="input" placeholder="you@example.com" />
-            {errors.email && <p className="te
+            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input {...register("password")} type="password" className="input" placeholder="••••••••" />
+            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+          </div>
+
+          {errors.root && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+              {errors.root.message}
+            </div>
+          )}
+
+          <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center">
+            {isSubmitting ? "Creating account…" : "Create Account"}
+          </button>
+        </form>
+      </div>
+
+      <p className="mt-4 text-center text-sm text-gray-500">
+        Already have an account?{" "}
+        <Link href="/login" className="text-brand-600 font-medium hover:underline">Sign in</Link>
+      </p>
+    </div>
+  );
+}
