@@ -329,4 +329,3 @@ export function Navbar() {
     </header>
   );
 }
-          
