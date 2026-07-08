@@ -58,7 +58,7 @@ export default async function VendorProfilePage({
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("*, category:categories(*), services:vendor_services(*), profiles(*)")
+    .select("*, category:categories(*), services:vendor_services(*), profiles(*), photos:vendor_photos(id,url,storage_path,sort_order)")
     .eq("slug", params.id)
     .eq("is_active", true)
     .single();
@@ -305,6 +305,29 @@ export default async function VendorProfilePage({
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">About</h2>
                 <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-line">
                   {v.description}
+                </div>
+              </section>
+            )}
+
+
+            {/* Photo Gallery */}
+            {v.photos && v.photos.length > 0 && (
+              <section>
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Photos</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[...v.photos]
+                    .sort((a, b) => a.sort_order - b.sort_order)
+                    .map((photo) => (
+                      <div key={photo.id} className="relative aspect-video rounded-xl overflow-hidden bg-gray-100">
+                        <Image
+                          src={photo.url}
+                          alt=""
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 640px) 50vw, 33vw"
+                        />
+                      </div>
+                    ))}
                 </div>
               </section>
             )}

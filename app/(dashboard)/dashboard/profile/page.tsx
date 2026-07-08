@@ -8,7 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { slugify } from "@/lib/utils";
 import { Info } from "lucide-react";
 import { MarketMultiSelect } from "@/components/MarketMultiSelect";
-import type { Category } from "@/types";
+import { LogoUploader, GalleryUploader } from "@/components/PhotoUploader";
+import type { Category, VendorPhoto } from "@/types";
 
 const schema = z.object({
   business_name: z.string().min(2, "Business name required"),
@@ -34,6 +35,8 @@ export default function EditProfilePage() {
   const [saved, setSaved] = useState(false);
   const [existingVendorId, setExistingVendorId] = useState<string | null>(null);
   const [markets, setMarkets] = useState<string[]>([]);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [galleryPhotos, setGalleryPhotos] = useState<VendorPhoto[]>([]);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -49,13 +52,15 @@ export default function EditProfilePage() {
 
       const { data: v } = await supabase
         .from("vendors")
-        .select("*, services:vendor_services(*)")
+        .select("*, services:vendor_services(*), photos:vendor_photos(*)")
         .eq("user_id", user.id)
         .single();
 
       if (v) {
         setExistingVendorId(v.id);
         setMarkets(v.markets ?? []);
+        setLogoUrl(v.logo_url ?? null);
+        setGalleryPhotos((v.photos ?? []).sort((a: VendorPhoto, b: VendorPhoto) => a.sort_order - b.sort_order));
         reset({
           business_name: v.business_name,
           category_id: v.category_id,
@@ -72,7 +77,6 @@ export default function EditProfilePage() {
           services_raw: v.services?.map((s: { name: string }) => s.name).join(", ") ?? "",
         });
       } else {
-        // Pre-fill from signup metadata for new vendors
         const meta = user.user_metadata ?? {};
         if (meta.markets && Array.isArray(meta.markets)) setMarkets(meta.markets);
         reset({
@@ -95,7 +99,7 @@ export default function EditProfilePage() {
     let vendorId = existingVendorId;
 
     if (vendorId) {
-      const updatePayload = {
+      await supabase.from("vendors").update({
         business_name: values.business_name,
         category_id: values.category_id,
         tagline: values.tagline || null,
@@ -109,11 +113,10 @@ export default function EditProfilePage() {
         zip: values.zip || null,
         service_radius: values.service_radius || null,
         markets,
-      };
-      await supabase.from("vendors").update(updatePayload).eq("id", vendorId);
+      }).eq("id", vendorId);
     } else {
       const slug = slugify(values.business_name);
-      const insertPayload = {
+      const { data } = await supabase.from("vendors").insert({
         user_id: user.id,
         business_name: values.business_name,
         slug,
@@ -130,12 +133,10 @@ export default function EditProfilePage() {
         service_radius: values.service_radius || null,
         markets,
         is_claimed: true,
-      };
-      const { data } = await supabase.from("vendors").insert(insertPayload).select("id").single();
+      }).select("id").single();
       vendorId = data?.id ?? null;
     }
 
-    // Sync services
     if (vendorId) {
       await supabase.from("vendor_services").delete().eq("vendor_id", vendorId);
       const names = (values.services_raw ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -198,6 +199,36 @@ export default function EditProfilePage() {
           </div>
         </div>
 
+        {/* Photos — only available once listing exists */}
+        {existingVendorId ? (
+          <div className="card p-6 space-y-6">
+            <h2 className="font-semibold text-gray-800">Photos</h2>
+            <div className="grid gap-8 sm:grid-cols-2">
+              <LogoUploader
+                vendorId={existingVendorId}
+                initialUrl={logoUrl}
+                onUploaded={setLogoUrl}
+              />
+              <GalleryUploader
+                vendorId={existingVendorId}
+                initialPhotos={galleryPhotos}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="card p-5 flex items-center gap-3 border-dashed">
+            <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 text-gray-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p className="text-sm text-gray-500">
+              <span className="font-medium text-gray-700">Photos</span> — Save your listing first to upload a logo and gallery photos.
+            </p>
+          </div>
+        )}
+
         {/* Services */}
         <div className="card p-6 space-y-4">
           <h2 className="font-semibold text-gray-800">Services Offered</h2>
@@ -236,7 +267,6 @@ export default function EditProfilePage() {
         {/* Contact */}
         <div className="card p-6 space-y-5">
           <h2 className="font-semibold text-gray-800">Contact Information</h2>
-
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Business Email *</label>

@@ -62,6 +62,7 @@ export interface Vendor {
   subscription_expires_at: string | null;
   created_at: string;
   services?: VendorService[];
+  photos?: VendorPhoto[];
 }
 
 export interface VendorService {
@@ -134,4 +135,13 @@ export interface VendorSearchParams {
   market?: string;
   min_rating?: string;
   page?: string;
+}
+
+export interface VendorPhoto {
+  id: string;
+  vendor_id: string;
+  url: string;
+  storage_path: string;
+  sort_order: number;
+  created_at: string;
 }
