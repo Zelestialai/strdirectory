@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { slugify } from "@/lib/utils";
 import { Info } from "lucide-react";
+import { MarketMultiSelect } from "@/components/MarketMultiSelect";
 import type { Category } from "@/types";
 
 const schema = z.object({
@@ -14,7 +15,6 @@ const schema = z.object({
   category_id: z.string().uuid("Select a category"),
   tagline: z.string().max(120).optional(),
   description: z.string().max(2000).optional(),
-  // Contact email is required — shown publicly and used for message notifications
   email: z.string().email("A valid contact email is required"),
   notification_email: z.string().email("Enter a valid email").optional().or(z.literal("")),
   phone: z.string().optional(),
@@ -33,6 +33,7 @@ export default function EditProfilePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [saved, setSaved] = useState(false);
   const [existingVendorId, setExistingVendorId] = useState<string | null>(null);
+  const [markets, setMarkets] = useState<string[]>([]);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -54,6 +55,7 @@ export default function EditProfilePage() {
 
       if (v) {
         setExistingVendorId(v.id);
+        setMarkets(v.markets ?? []);
         reset({
           business_name: v.business_name,
           category_id: v.category_id,
@@ -70,8 +72,16 @@ export default function EditProfilePage() {
           services_raw: v.services?.map((s: { name: string }) => s.name).join(", ") ?? "",
         });
       } else {
-        // Pre-fill contact email with auth email for new listings
-        reset({ email: user.email ?? "" });
+        // Pre-fill from signup metadata for new vendors
+        const meta = user.user_metadata ?? {};
+        if (meta.markets && Array.isArray(meta.markets)) setMarkets(meta.markets);
+        reset({
+          business_name: meta.business_name ?? "",
+          category_id: meta.category_id ?? "",
+          website: meta.website ?? "",
+          phone: meta.phone ?? "",
+          email: user.email ?? "",
+        });
       }
     };
     load();
@@ -85,7 +95,6 @@ export default function EditProfilePage() {
     let vendorId = existingVendorId;
 
     if (vendorId) {
-      // UPDATE — never regenerate the slug; changing business name must not break existing links
       const updatePayload = {
         business_name: values.business_name,
         category_id: values.category_id,
@@ -99,10 +108,10 @@ export default function EditProfilePage() {
         state: values.state?.toUpperCase() || null,
         zip: values.zip || null,
         service_radius: values.service_radius || null,
+        markets,
       };
       await supabase.from("vendors").update(updatePayload).eq("id", vendorId);
     } else {
-      // INSERT — generate slug once from the initial business name
       const slug = slugify(values.business_name);
       const insertPayload = {
         user_id: user.id,
@@ -119,6 +128,7 @@ export default function EditProfilePage() {
         state: values.state?.toUpperCase() || null,
         zip: values.zip || null,
         service_radius: values.service_radius || null,
+        markets,
         is_claimed: true,
       };
       const { data } = await supabase.from("vendors").insert(insertPayload).select("id").single();
@@ -135,7 +145,6 @@ export default function EditProfilePage() {
       setExistingVendorId(vendorId);
     }
 
-    // New vendor → take them to the onboarding wizard
     if (isNewVendor) {
       router.push("/dashboard/onboarding");
       return;
@@ -204,15 +213,33 @@ export default function EditProfilePage() {
           </div>
         </div>
 
-        {/* Contact & location */}
+        {/* Markets */}
+        <div className="card p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold text-gray-800">Markets Served</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Select the STR markets where you offer services. Your listing will appear in those market directories.
+            </p>
+          </div>
+          <MarketMultiSelect
+            selected={markets}
+            onChange={setMarkets}
+            placeholder="Search 106 STR markets…"
+          />
+          {markets.length === 0 && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
+              Select at least one market to appear in market-specific searches.
+            </p>
+          )}
+        </div>
+
+        {/* Contact */}
         <div className="card p-6 space-y-5">
           <h2 className="font-semibold text-gray-800">Contact Information</h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Business Email *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Email *</label>
               <input {...register("email")} type="email" className="input" placeholder="hello@mybusiness.com" />
               <p className="mt-1 text-xs text-gray-400">Displayed publicly on your profile.</p>
               {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
@@ -224,7 +251,6 @@ export default function EditProfilePage() {
             </div>
           </div>
 
-          {/* Notification email */}
           <div className="rounded-lg bg-brand-50 border border-brand-100 p-4 space-y-3">
             <div className="flex items-start gap-2">
               <Info className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" />
@@ -247,7 +273,7 @@ export default function EditProfilePage() {
             </div>
           </div>
 
-          <div className="sm:col-span-2">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
             <input {...register("website")} type="url" className="input" placeholder="https://mybusiness.com" />
             {errors.website && <p className="text-xs text-red-500 mt-1">{errors.website.message}</p>}
