@@ -75,17 +75,32 @@ export default async function HostDashboardPage() {
         ))}
       </div>
 
-      {/* Getting started tip */}
-      {(savedCount ?? 0) === 0 && (inquiryCount ?? 0) === 0 && (
-        <div className="rounded-xl border-2 border-dashed border-brand-200 bg-brand-50/50 p-6 text-center">
-          <Bookmark className="mx-auto h-8 w-8 text-brand-400 mb-2" />
-          <h3 className="font-semibold text-brand-800 mb-1">Start building your vendor shortlist</h3>
-          <p className="text-sm text-brand-600 mb-4">
-            Browse vendors in your market and save your favorites to compare later.
-          </p>
-          <Link href="/vendors" className="btn-primary text-sm">
-            Browse Vendors
-          </Link>
+      {/* Onboarding checklist — shown until host has saved + inquired */}
+      {((savedCount ?? 0) === 0 || (inquiryCount ?? 0) === 0) && (
+        <div className="rounded-xl border border-brand-200 bg-brand-50 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-brand-800">Getting started</h3>
+            <Link href="/host/onboarding" className="text-xs text-brand-600 hover:underline">
+              View onboarding guide →
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {[
+              { done: true, label: "Create your host account" },
+              { done: (savedCount ?? 0) > 0, label: "Save your first vendor", href: "/vendors" },
+              { done: (inquiryCount ?? 0) > 0, label: "Send your first inquiry", href: "/vendors" },
+            ].map(({ done, label, href }) => (
+              <div key={label} className="flex items-center gap-2.5">
+                <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 text-xs ${done ? "bg-brand-600" : "bg-white border-2 border-brand-300"}`}>
+                  {done && <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </div>
+                <span className={`text-sm ${done ? "line-through text-brand-400" : "text-brand-700 font-medium"}`}>{label}</span>
+                {!done && href && (
+                  <Link href={href} className="ml-auto text-xs text-brand-600 hover:underline shrink-0">Do it →</Link>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

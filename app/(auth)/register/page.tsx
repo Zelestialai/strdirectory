@@ -137,7 +137,7 @@ export default function RegisterPage() {
 
     const next =
       accountType === "vendor" ? "/dashboard/onboarding" :
-      accountType === "active_host" || accountType === "potential_host" ? "/host/dashboard" :
+      accountType === "active_host" || accountType === "potential_host" ? "/host/onboarding" :
       "/";
 
     const metadata: Record<string, unknown> = { full_name: fullName.trim(), role: accountType };
