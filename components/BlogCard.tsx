@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BlogPost } from "@/lib/blog";
+import { BlogPostMeta } from "@/lib/blog";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "hosting-tips": { bg: "bg-brand-100", text: "text-brand-700" },
@@ -15,7 +15,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   "industry-news": "Industry News",
 };
 
-export function BlogCard({ post }: { post: BlogPost }) {
+export function BlogCard({ post }: { post: BlogPostMeta }) {
   const colors = CATEGORY_COLORS[post.category] ?? { bg: "bg-gray-100", text: "text-gray-700" };
 
   return (

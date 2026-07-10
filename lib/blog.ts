@@ -11,6 +11,8 @@ export type BlogCategory =
   | "vendor-spotlights"
   | "industry-news";
 
+export type BlogPostMeta = Omit<BlogPost, "content">;
+
 export interface BlogPost {
   slug: string;
   title: string;
