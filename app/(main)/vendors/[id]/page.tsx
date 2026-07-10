@@ -10,6 +10,8 @@ import { MapPin, Globe, Phone, Mail, CheckCircle2, Shield, Star, Tag, ChevronLef
 import type { Vendor, Review } from "@/types";
 import { cn, COLOR_CLASSES, CATEGORY_COLORS } from "@/lib/utils";
 import { SaveVendorButton } from "@/components/SaveVendorButton";
+import { GoogleReviewsTab } from "@/components/GoogleReviewsTab";
+import { FlagReviewButton } from "@/components/FlagReviewButton";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -52,7 +54,7 @@ export default async function VendorProfilePage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams?: { review_sort?: string; review_page?: string };
+  searchParams?: { review_sort?: string; review_page?: string; review_tab?: string };
 }) {
   const supabase = createClient();
 
@@ -68,6 +70,7 @@ export default async function VendorProfilePage({
 
   const reviewSort = searchParams?.review_sort ?? "newest";
   const reviewPage = Math.max(1, parseInt(searchParams?.review_page ?? "1"));
+  const reviewTab = searchParams?.review_tab === "google" ? "google" : "strvend";
   const reviewFrom = (reviewPage - 1) * REVIEWS_PER_PAGE;
 
   // Build review query with sort
@@ -346,98 +349,144 @@ export default async function VendorProfilePage({
               </section>
             )}
 
-            {/* Reviews */}
+            {/* Reviews — two-tab: STRVend Reviews | Google Reviews */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Reviews {v.review_count > 0 && <span className="text-gray-400 font-normal text-base">({v.review_count})</span>}
-                </h2>
-                {user && !hasReviewed && hasInquired && (
+                <h2 className="text-lg font-semibold text-gray-900">Reviews</h2>
+                {reviewTab === "strvend" && user && !hasReviewed && hasInquired && (
                   <Link href={`/vendors/${v.slug}/review`} className="btn-secondary text-xs">
                     <Star className="h-3.5 w-3.5" /> Write a Review
                   </Link>
                 )}
-                {user && !hasReviewed && !hasInquired && (
+                {reviewTab === "strvend" && user && !hasReviewed && !hasInquired && (
                   <span className="text-xs text-gray-400 italic">Contact this vendor first to leave a review</span>
                 )}
               </div>
 
-              {/* Star breakdown */}
-              {v.review_count > 0 && (
-                <StarBreakdown counts={starCounts} total={v.review_count} avg={v.avg_rating} />
-              )}
+              {/* Tab switcher */}
+              <div className="flex gap-1 mb-5 border-b border-gray-100">
+                <Link
+                  href={reviewHref({ review_tab: undefined, review_page: undefined })}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    reviewTab === "strvend"
+                      ? "border-brand-600 text-brand-700"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  STRVend Reviews
+                  {v.review_count > 0 && (
+                    <span className="ml-1.5 text-xs text-gray-400">({v.review_count})</span>
+                  )}
+                </Link>
+                {v.google_place_id && (
+                  <Link
+                    href={reviewHref({ review_tab: "google", review_page: undefined })}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                      reviewTab === "google"
+                        ? "border-brand-600 text-brand-700"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Google Reviews
+                    {v.google_review_count != null && v.google_review_count > 0 && (
+                      <span className="ml-1.5 text-xs text-gray-400">({v.google_review_count})</span>
+                    )}
+                  </Link>
+                )}
+              </div>
 
-              {/* Sort controls */}
-              {v.review_count > 0 && (
-                <div className="flex items-center gap-2 mb-4 text-xs">
-                  <span className="text-gray-400">Sort:</span>
-                  {[
-                    { key: "newest", label: "Newest" },
-                    { key: "highest", label: "Highest rated" },
-                    { key: "most_helpful", label: "Most helpful" },
-                  ].map(({ key, label }) => (
-                    <Link
-                      key={key}
-                      href={reviewHref({ review_sort: key !== "newest" ? key : undefined, review_page: undefined })}
-                      className={`rounded-full px-3 py-1 border transition-colors ${
-                        reviewSort === key
-                          ? "bg-brand-600 text-white border-brand-600"
-                          : "border-gray-200 text-gray-600 hover:border-gray-300"
-                      }`}
-                    >
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-
-              {reviews.length > 0 ? (
+              {/* STRVend Reviews tab */}
+              {reviewTab === "strvend" && (
                 <>
-                  <div className="space-y-4">
-                    {reviews.map((r) => (
-                      <ReviewCard
-                        key={r.id}
-                        review={r}
-                        currentUserId={user?.id}
-                        initialHelpfulCount={r.helpful_count}
-                        initialVoted={userVotedIds.has(r.id)}
-                      />
-                    ))}
-                  </div>
+                  {/* Star breakdown */}
+                  {v.review_count > 0 && (
+                    <StarBreakdown counts={starCounts} total={v.review_count} avg={v.avg_rating} />
+                  )}
 
-                  {/* Pagination */}
-                  {totalReviewPages > 1 && (
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                      <Link
-                        href={reviewHref({ review_page: reviewPage > 1 ? String(reviewPage - 1) : undefined })}
-                        className={`flex items-center gap-1 text-sm rounded-lg px-3 py-1.5 border transition-colors ${
-                          reviewPage <= 1
-                            ? "pointer-events-none opacity-30 border-gray-100"
-                            : "border-gray-200 text-gray-600 hover:border-gray-300"
-                        }`}
-                      >
-                        <ChevronLeft className="h-4 w-4" /> Previous
-                      </Link>
-                      <span className="text-xs text-gray-400">
-                        Page {reviewPage} of {totalReviewPages}
-                      </span>
-                      <Link
-                        href={reviewHref({ review_page: reviewPage < totalReviewPages ? String(reviewPage + 1) : undefined })}
-                        className={`flex items-center gap-1 text-sm rounded-lg px-3 py-1.5 border transition-colors ${
-                          reviewPage >= totalReviewPages
-                            ? "pointer-events-none opacity-30 border-gray-100"
-                            : "border-gray-200 text-gray-600 hover:border-gray-300"
-                        }`}
-                      >
-                        Next <ChevronRight className="h-4 w-4" />
-                      </Link>
+                  {/* Sort controls */}
+                  {v.review_count > 0 && (
+                    <div className="flex items-center gap-2 mb-4 text-xs">
+                      <span className="text-gray-400">Sort:</span>
+                      {[
+                        { key: "newest", label: "Newest" },
+                        { key: "highest", label: "Highest rated" },
+                        { key: "most_helpful", label: "Most helpful" },
+                      ].map(({ key, label }) => (
+                        <Link
+                          key={key}
+                          href={reviewHref({ review_sort: key !== "newest" ? key : undefined, review_page: undefined })}
+                          className={`rounded-full px-3 py-1 border transition-colors ${
+                            reviewSort === key
+                              ? "bg-brand-600 text-white border-brand-600"
+                              : "border-gray-200 text-gray-600 hover:border-gray-300"
+                          }`}
+                        >
+                          {label}
+                        </Link>
+                      ))}
                     </div>
                   )}
+
+                  {reviews.length > 0 ? (
+                    <>
+                      <div className="space-y-4">
+                        {reviews.map((r) => (
+                          <div key={r.id} className="relative group">
+                            <ReviewCard
+                              review={r}
+                              currentUserId={user?.id}
+                              initialHelpfulCount={r.helpful_count}
+                              initialVoted={userVotedIds.has(r.id)}
+                            />
+                            {user && user.id !== r.reviewer_id && (
+                              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <FlagReviewButton reviewId={r.id} />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {totalReviewPages > 1 && (
+                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+                          <Link
+                            href={reviewHref({ review_page: reviewPage > 1 ? String(reviewPage - 1) : undefined })}
+                            className={`flex items-center gap-1 text-sm rounded-lg px-3 py-1.5 border transition-colors ${
+                              reviewPage <= 1
+                                ? "pointer-events-none opacity-30 border-gray-100"
+                                : "border-gray-200 text-gray-600 hover:border-gray-300"
+                            }`}
+                          >
+                            <ChevronLeft className="h-4 w-4" /> Previous
+                          </Link>
+                          <span className="text-xs text-gray-400">
+                            Page {reviewPage} of {totalReviewPages}
+                          </span>
+                          <Link
+                            href={reviewHref({ review_page: reviewPage < totalReviewPages ? String(reviewPage + 1) : undefined })}
+                            className={`flex items-center gap-1 text-sm rounded-lg px-3 py-1.5 border transition-colors ${
+                              reviewPage >= totalReviewPages
+                                ? "pointer-events-none opacity-30 border-gray-100"
+                                : "border-gray-200 text-gray-600 hover:border-gray-300"
+                            }`}
+                          >
+                            Next <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 rounded-xl border p-6 text-center">
+                      No reviews yet. Be the first to leave one!
+                    </p>
+                  )}
                 </>
-              ) : (
-                <p className="text-sm text-gray-400 rounded-xl border p-6 text-center">
-                  No reviews yet. Be the first to leave one!
-                </p>
+              )}
+
+              {/* Google Reviews tab */}
+              {reviewTab === "google" && v.google_place_id && (
+                <GoogleReviewsTab vendorSlug={v.slug} placeId={v.google_place_id} />
               )}
             </section>
           </div>
@@ -477,19 +526,4 @@ export default async function VendorProfilePage({
             {v.avg_rating > 0 && (
               <div className="rounded-xl border bg-white p-5">
                 <h3 className="font-semibold text-gray-800 mb-3">Rating</h3>
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl font-bold text-gray-900">{v.avg_rating.toFixed(1)}</span>
-                  <div>
-                    <StarRating rating={v.avg_rating} size="md" />
-                    <p className="text-xs text-gray-400 mt-1">{v.review_count} review{v.review_count !== 1 ? "s" : ""}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </aside>
-        </div>
-      </div>
-    </div>
-    </>
-  );
-}
+                <div className="flex items-center ga

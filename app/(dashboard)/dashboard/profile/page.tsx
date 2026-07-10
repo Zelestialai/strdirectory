@@ -25,6 +25,7 @@ const schema = z.object({
   zip: z.string().optional(),
   service_radius: z.coerce.number().min(0).max(500).optional(),
   services_raw: z.string().optional(),
+  google_place_id: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -37,6 +38,7 @@ export default function EditProfilePage() {
   const [markets, setMarkets] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [galleryPhotos, setGalleryPhotos] = useState<VendorPhoto[]>([]);
+  const [googlePlaceId, setGooglePlaceId] = useState<string>("");
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -61,6 +63,7 @@ export default function EditProfilePage() {
         setMarkets(v.markets ?? []);
         setLogoUrl(v.logo_url ?? null);
         setGalleryPhotos((v.photos ?? []).sort((a: VendorPhoto, b: VendorPhoto) => a.sort_order - b.sort_order));
+        setGooglePlaceId(v.google_place_id ?? "");
         reset({
           business_name: v.business_name,
           category_id: v.category_id,
@@ -75,6 +78,7 @@ export default function EditProfilePage() {
           zip: v.zip ?? "",
           service_radius: v.service_radius ?? undefined,
           services_raw: v.services?.map((s: { name: string }) => s.name).join(", ") ?? "",
+          google_place_id: v.google_place_id ?? "",
         });
       } else {
         const meta = user.user_metadata ?? {};
@@ -112,6 +116,7 @@ export default function EditProfilePage() {
         state: values.state?.toUpperCase() || null,
         zip: values.zip || null,
         service_radius: values.service_radius || null,
+        google_place_id: values.google_place_id || null,
         markets,
       }).eq("id", vendorId);
     } else {
@@ -131,6 +136,7 @@ export default function EditProfilePage() {
         state: values.state?.toUpperCase() || null,
         zip: values.zip || null,
         service_radius: values.service_radius || null,
+        google_place_id: values.google_place_id || null,
         markets,
         is_claimed: true,
       }).select("id").single();
@@ -340,13 +346,36 @@ export default function EditProfilePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button type="submit" disabled={isSubmitting} className="btn-primary px-8">
-            {isSubmitting ? "Saving…" : existingVendorId ? "Save Changes" : "Create Listing"}
-          </button>
-          {saved && <span className="text-sm text-green-600 font-medium">✓ Saved successfully</span>}
+        {/* Google Place ID */}
+        <div className="card p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold text-gray-800">Google Reviews</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Link your Google Business profile to display your Google reviews on your public listing.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Google Place ID
+            </label>
+            <input
+              {...register("google_place_id")}
+              className="input"
+              placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              Find your Place ID at{" "}
+              <a
+                href="https://developers.google.com/maps/documentation/places/web-service/place-id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 hover:underline"
+              >
+                developers.google.com/maps/…/place-id
+              </a>
+            </p>
+          </div>
         </div>
-      </form>
-    </div>
-  );
-}
+
+        <div className="flex items-center gap-4">
+          
