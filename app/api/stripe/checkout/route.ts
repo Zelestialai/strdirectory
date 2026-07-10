@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { stripe, STRIPE_PLANS, type PlanKey } from "@/lib/stripe";
-
-// Prevent Next.js from statically rendering this route at build time
-export const dynamic = "force-dynamic";
+import { stripe, STRIPE_PLANS, type PlanKey, type BillingInterval } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   const supabase = createClient();
@@ -12,6 +9,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const plan = body.plan as PlanKey;
+  const interval: BillingInterval = body.interval === "annual" ? "annual" : "monthly";
 
   if (!STRIPE_PLANS[plan]) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
@@ -46,17 +44,18 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.strvend.com";
   const selectedPlan = STRIPE_PLANS[plan];
+  const priceId = selectedPlan[interval].priceId;
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     payment_method_types: ["card"],
-    line_items: [{ price: selectedPlan.priceId, quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${appUrl}/dashboard/upgrade/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/dashboard/upgrade`,
-    metadata: { vendor_id: vendor.id, plan },
+    metadata: { vendor_id: vendor.id, plan, interval },
     subscription_data: {
-      metadata: { vendor_id: vendor.id, plan },
+      metadata: { vendor_id: vendor.id, plan, interval },
     },
   });
 

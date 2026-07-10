@@ -5,13 +5,12 @@ import { Check, Zap, Star, Loader2, Settings, ExternalLink } from "lucide-react"
 import { createClient } from "@/lib/supabase/client";
 
 type Tier = "free" | "pro" | "featured";
+type BillingInterval = "monthly" | "annual";
 
 const PLANS = [
   {
     key: "pro" as const,
     name: "Pro",
-    price: "$29",
-    period: "/month",
     icon: Zap,
     iconColor: "text-blue-600",
     iconBg: "bg-blue-50",
@@ -19,6 +18,8 @@ const PLANS = [
     activeBorder: "border-blue-500 ring-2 ring-blue-200",
     cta: "Upgrade to Pro",
     ctaClass: "bg-blue-600 hover:bg-blue-700 text-white",
+    monthly: { price: "$29", sub: "/month" },
+    annual: { price: "$24", sub: "/month", total: "$290/year" },
     features: [
       "Verified badge on your listing",
       "Priority placement in search results",
@@ -30,8 +31,6 @@ const PLANS = [
   {
     key: "featured" as const,
     name: "Featured",
-    price: "$79",
-    period: "/month",
     icon: Star,
     iconColor: "text-amber-600",
     iconBg: "bg-amber-50",
@@ -39,6 +38,8 @@ const PLANS = [
     activeBorder: "border-amber-500 ring-2 ring-amber-200",
     cta: "Get Featured",
     ctaClass: "bg-amber-500 hover:bg-amber-600 text-white",
+    monthly: { price: "$79", sub: "/month" },
+    annual: { price: "$66", sub: "/month", total: "$790/year" },
     popular: true,
     features: [
       "Everything in Pro",
@@ -52,6 +53,7 @@ const PLANS = [
 ];
 
 export default function UpgradePage() {
+  const [billing, setBilling] = useState<BillingInterval>("monthly");
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentTier, setCurrentTier] = useState<Tier>("free");
@@ -61,17 +63,13 @@ export default function UpgradePage() {
   useEffect(() => {
     async function loadVendor() {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       const { data } = await supabase
         .from("vendors")
         .select("subscription_tier, stripe_customer_id")
         .eq("user_id", user.id)
         .single();
-
       if (data) {
         setCurrentTier((data.subscription_tier as Tier) ?? "free");
         setHasStripeCustomer(!!data.stripe_customer_id);
@@ -88,7 +86,7 @@ export default function UpgradePage() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, interval: billing }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
@@ -134,7 +132,38 @@ export default function UpgradePage() {
         </div>
       )}
 
-      {/* Current plan banner for subscribers */}
+      {/* Billing toggle — only show for non-subscribers */}
+      {!tierLoading && !isSubscribed && (
+        <div className="flex items-center justify-center">
+          <div className="inline-flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+            <button
+              onClick={() => setBilling("monthly")}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                billing === "monthly"
+                  ? "bg-white shadow text-gray-900"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBilling("annual")}
+              className={`relative px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                billing === "annual"
+                  ? "bg-white shadow text-gray-900"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Annual
+              <span className="ml-1.5 inline-block text-xs font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">
+                2 months free
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active plan banner */}
       {!tierLoading && isSubscribed && (
         <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -147,7 +176,7 @@ export default function UpgradePage() {
               </p>
             </div>
             <p className="text-sm text-gray-500">
-              {currentTier === "pro" ? "$29/month" : "$79/month"} — billed monthly via Stripe
+              {currentTier === "pro" ? "$29/month" : "$79/month"} — billed via Stripe
             </p>
           </div>
           <button
@@ -190,6 +219,7 @@ export default function UpgradePage() {
           const Icon = plan.icon;
           const isCurrentPlan = currentTier === plan.key;
           const isLowerPlan = currentTier === "featured" && plan.key === "pro";
+          const pricing = plan[billing];
 
           return (
             <div
@@ -216,9 +246,14 @@ export default function UpgradePage() {
                 <div>
                   <p className="font-bold text-gray-900">{plan.name}</p>
                   <p className="text-xs text-gray-400">
-                    <span className="text-xl font-bold text-gray-900">{plan.price}</span>
-                    {plan.period}
+                    <span className="text-xl font-bold text-gray-900">{pricing.price}</span>
+                    {pricing.sub}
                   </p>
+                  {'total' in pricing && (
+                    <p className="text-xs text-green-600 font-medium mt-0.5">
+                      Billed as {pricing.total}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -268,7 +303,6 @@ export default function UpgradePage() {
         })}
       </div>
 
-      {/* Manage subscription link for subscribers who want to cancel */}
       {!tierLoading && isSubscribed && hasStripeCustomer && (
         <p className="text-center text-sm text-gray-500">
           Need to update your payment method or cancel?{" "}
@@ -282,8 +316,8 @@ export default function UpgradePage() {
       )}
 
       <p className="text-center text-xs text-gray-400">
-        Subscriptions are billed monthly. Cancel anytime from your Stripe billing portal.
-        Payments are processed securely by Stripe — we never store your card details.
+        Annual plans are billed upfront for 12 months. Monthly plans renew each month. Cancel anytime via the Stripe billing portal.
+        Payments processed securely by Stripe — we never store your card details.
       </p>
     </div>
   );
