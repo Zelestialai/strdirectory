@@ -526,4 +526,19 @@ export default async function VendorProfilePage({
             {v.avg_rating > 0 && (
               <div className="rounded-xl border bg-white p-5">
                 <h3 className="font-semibold text-gray-800 mb-3">Rating</h3>
-                <div className="flex items-center ga
+                <div className="flex items-center ga                <div className="flex items-center gap-3">
+                  <span className="text-4xl font-bold text-gray-900">{v.avg_rating.toFixed(1)}</span>
+                  <div>
+                    <StarRating rating={v.avg_rating} size="md" />
+                    <p className="text-xs text-gray-400 mt-1">{v.review_count} review{v.review_count !== 1 ? "s" : ""}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+      </div>
+    </div>
+    </>
+  );
+}
