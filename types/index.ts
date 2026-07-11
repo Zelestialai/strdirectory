@@ -61,6 +61,11 @@ export interface Vendor {
   stripe_subscription_id: string | null;
   subscription_expires_at: string | null;
   created_at: string;
+  google_place_id?: string | null;
+  google_rating?: number | null;
+  google_review_count?: number | null;
+  google_reviews_cached_at?: string | null;
+  markets?: string[] | null;
   services?: VendorService[];
   photos?: VendorPhoto[];
 }
@@ -137,11 +142,4 @@ export interface VendorSearchParams {
   page?: string;
 }
 
-export interface VendorPhoto {
-  id: string;
-  vendor_id: string;
-  url: string;
-  storage_path: string;
-  sort_order: number;
-  created_at: string;
-}
+export inter

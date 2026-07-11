@@ -378,4 +378,12 @@ export default function EditProfilePage() {
         </div>
 
         <div className="flex items-center gap-4">
-          
+                    <button type="submit" disabled={isSubmitting} className="btn-primary px-8">
+            {isSubmitting ? "Saving…" : existingVendorId ? "Save Changes" : "Create Listing"}
+          </button>
+          {saved && <span className="text-sm text-green-600 font-medium">✓ Saved successfully</span>}
+        </div>
+      </form>
+    </div>
+  );
+}
