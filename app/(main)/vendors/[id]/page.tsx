@@ -398,12 +398,9 @@ export default async function VendorProfilePage({
               {/* STRVend Reviews tab */}
               {reviewTab === "strvend" && (
                 <>
-                  {/* Star breakdown */}
                   {v.review_count > 0 && (
                     <StarBreakdown counts={starCounts} total={v.review_count} avg={v.avg_rating} />
                   )}
-
-                  {/* Sort controls */}
                   {v.review_count > 0 && (
                     <div className="flex items-center gap-2 mb-4 text-xs">
                       <span className="text-gray-400">Sort:</span>
@@ -426,7 +423,6 @@ export default async function VendorProfilePage({
                       ))}
                     </div>
                   )}
-
                   {reviews.length > 0 ? (
                     <>
                       <div className="space-y-4">
@@ -446,8 +442,6 @@ export default async function VendorProfilePage({
                           </div>
                         ))}
                       </div>
-
-                      {/* Pagination */}
                       {totalReviewPages > 1 && (
                         <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
                           <Link
@@ -526,7 +520,7 @@ export default async function VendorProfilePage({
             {v.avg_rating > 0 && (
               <div className="rounded-xl border bg-white p-5">
                 <h3 className="font-semibold text-gray-800 mb-3">Rating</h3>
-                <div className="flex items-center ga                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <span className="text-4xl font-bold text-gray-900">{v.avg_rating.toFixed(1)}</span>
                   <div>
                     <StarRating rating={v.avg_rating} size="md" />
