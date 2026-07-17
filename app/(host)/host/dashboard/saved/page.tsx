@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Bookmark, ExternalLink, MapPin } from "lucide-react";
 import { SaveVendorButton } from "@/components/SaveVendorButton";
+import { CompareButton } from "@/components/CompareButton";
 
 export const metadata = { title: "Saved Vendors" };
 
@@ -58,6 +59,7 @@ export default async function SavedVendorsPage() {
                 )}
 
                 <div className="flex gap-2 pt-1 border-t">
+                  <CompareButton vendor={v} className="shrink-0" />
                   <Link href={`/vendors/${v.slug}`} className="btn-secondary text-xs flex-1 justify-center">
                     <ExternalLink className="h-3.5 w-3.5" /> View Profile
                   </Link>

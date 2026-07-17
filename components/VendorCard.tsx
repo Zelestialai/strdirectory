@@ -6,6 +6,7 @@ import type { Vendor } from "@/types";
 import { truncate, COLOR_CLASSES, CATEGORY_COLORS, CATEGORY_COVERS } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { VendorContactButton } from "./VendorContactButton";
+import { CompareButton } from "./CompareButton";
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -106,6 +107,9 @@ export function VendorCard({ vendor }: VendorCardProps) {
       </Link>
 
       {/* Contact footer — outside the Link so clicks don't navigate */}
+      <div className="px-4 pb-2 pt-0 flex justify-end">
+        <CompareButton vendor={vendor} />
+      </div>
       <div className="px-4 pb-4 pt-2 border-t border-gray-100">
         {vendor.is_claimed ? (
           /* Registered vendor → in-app message button */
