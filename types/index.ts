@@ -142,4 +142,11 @@ export interface VendorSearchParams {
   page?: string;
 }
 
-export inter
+export interface VendorPhoto {
+  id: string;
+  vendor_id: string;
+  url: string;
+  storage_path: string;
+  sort_order: number;
+  created_at: string;
+}
