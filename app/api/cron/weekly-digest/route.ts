@@ -64,7 +64,12 @@ export async function GET(req: Request) {
       avgRating: vendor.avg_rating,
       totalReviews: vendor.review_count,
       newInquiries: newInquiries ?? 0,
-      newReviews: (newReviews ?? []) as { rating: number; title: string | null; body: string | null; profiles: { full_name: string | null } | null }[],
+      newReviews: (newReviews ?? []).map(r => ({
+        rating: r.rating,
+        title: r.title,
+        body: r.body,
+        profiles: Array.isArray(r.profiles) ? (r.profiles[0] ?? null) : r.profiles,
+      })) as { rating: number; title: string | null; body: string | null; profiles: { full_name: string | null } | null }[],
       profileViews: profileViews ?? 0,
     });
 
