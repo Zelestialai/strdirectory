@@ -43,7 +43,6 @@ export default async function ComparePage({
     .map(s => vendors.find(v => v.slug === s))
     .filter(Boolean) as Vendor[];
 
-  const { data: { user } } = await supabase.auth.getUser();
 
   // Fetch recent reviews for each vendor
   const reviewMap: Record<string, { rating: number; body: string | null; profiles: { full_name: string | null } | null }[]> = {};
@@ -224,7 +223,7 @@ export default async function ComparePage({
               {ordered.map(v => (
                 <td key={v.id} className="px-4 py-4 align-top">
                   <div className="flex flex-col gap-2">
-                    <VendorContactButton vendor={v} user={user} />
+                    <VendorContactButton vendor={v} />
                     <Link href={`/vendors/${v.slug}`} className="text-xs text-brand-600 hover:underline text-center">
                       View full profile →
                     </Link>
