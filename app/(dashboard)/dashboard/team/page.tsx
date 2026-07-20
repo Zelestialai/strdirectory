@@ -68,10 +68,10 @@ export default async function VendorTeamPage({
           <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm">
-                {((activeMember.host as { full_name: string } | null)?.full_name ?? "H")[0]}
+                {((activeMember.host as unknown as { full_name: string } | null)?.full_name ?? "H")[0]}
               </div>
               <span className="font-medium text-gray-900 text-sm">
-                {(activeMember.host as { full_name: string } | null)?.full_name ?? "Host"}
+                {(activeMember.host as unknown as { full_name: string } | null)?.full_name ?? "Host"}
               </span>
             </div>
             <Link
@@ -84,7 +84,7 @@ export default async function VendorTeamPage({
           <TeamMessageThread
             teamMemberId={activeMember.id}
             currentUserId={user!.id}
-            otherName={(activeMember.host as { full_name: string } | null)?.full_name ?? "Host"}
+            otherName={(activeMember.host as unknown as { full_name: string } | null)?.full_name ?? "Host"}
           />
         </div>
       )}
