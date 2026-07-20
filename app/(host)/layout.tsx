@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Bookmark, MessageSquare, Star } from "lucide-react";
+import { LayoutDashboard, Bookmark, MessageSquare, Star, Home, CalendarDays } from "lucide-react";
 
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Allow both 'host' and 'user' roles (legacy user accounts)
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -20,6 +19,8 @@ export default async function HostLayout({ children }: { children: React.ReactNo
 
   const navLinks = [
     { href: "/host/dashboard", label: "Overview", icon: LayoutDashboard },
+    { href: "/host/dashboard/properties", label: "My Properties", icon: Home },
+    { href: "/host/dashboard/calendar", label: "Calendar", icon: CalendarDays },
     { href: "/host/dashboard/saved", label: "Saved Vendors", icon: Bookmark },
     { href: "/host/dashboard/inquiries", label: "My Inquiries", icon: MessageSquare },
     { href: "/host/dashboard/reviews", label: "My Reviews", icon: Star },
