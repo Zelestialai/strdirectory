@@ -98,7 +98,7 @@ export default async function VendorTeamPage({
           </h2>
           <div className="space-y-3">
             {pending.map((m) => {
-              const host = m.host as { id: string; full_name: string; email: string } | null;
+              const host = m.host as unknown as { id: string; full_name: string; email: string } | null;
               return (
                 <div key={m.id} className="card p-4 space-y-3">
                   <div className="flex items-center gap-3">
@@ -131,7 +131,7 @@ export default async function VendorTeamPage({
           </h2>
           <div className="space-y-2">
             {accepted.map((m) => {
-              const host = m.host as { full_name: string; email: string } | null;
+              const host = m.host as unknown as { full_name: string; email: string } | null;
               const isActive = m.id === activeThreadId;
               return (
                 <div key={m.id} className={`card p-4 flex items-center gap-3 ${isActive ? "ring-2 ring-teal-400" : ""}`}>
@@ -165,7 +165,7 @@ export default async function VendorTeamPage({
           </summary>
           <div className="mt-2 space-y-1 pl-4">
             {declined.map((m) => {
-              const host = m.host as { full_name: string } | null;
+              const host = m.host as unknown as { full_name: string } | null;
               return (
                 <p key={m.id} className="text-xs">{host?.full_name ?? "A host"}</p>
               );

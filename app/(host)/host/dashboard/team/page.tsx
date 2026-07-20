@@ -54,10 +54,10 @@ export default async function HostTeamPage({
           <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm">
-                {(activeMember.vendor as { business_name: string }).business_name[0]}
+                {(activeMember.vendor as unknown as { business_name: string }).business_name[0]}
               </div>
               <span className="font-medium text-gray-900 text-sm">
-                {(activeMember.vendor as { business_name: string }).business_name}
+                {(activeMember.vendor as unknown as { business_name: string }).business_name}
               </span>
             </div>
             <Link
@@ -70,7 +70,7 @@ export default async function HostTeamPage({
           <TeamMessageThread
             teamMemberId={activeMember.id}
             currentUserId={user!.id}
-            otherName={(activeMember.vendor as { business_name: string }).business_name}
+            otherName={(activeMember.vendor as unknown as { business_name: string }).business_name}
           />
         </div>
       )}
@@ -83,7 +83,7 @@ export default async function HostTeamPage({
           </h2>
           <div className="space-y-2">
             {pending.map((m) => {
-              const v = m.vendor as { business_name: string; category?: { name: string } | null };
+              const v = m.vendor as unknown as { business_name: string; category?: { name: string } | null };
               return (
                 <div key={m.id} className="card p-4 flex items-center gap-3">
                   <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm shrink-0">
@@ -111,7 +111,7 @@ export default async function HostTeamPage({
           </h2>
           <div className="space-y-2">
             {accepted.map((m) => {
-              const v = m.vendor as {
+              const v = m.vendor as unknown as {
                 id: string; slug?: string; business_name: string;
                 email?: string; phone?: string;
                 category?: { name: string; color?: string } | null;

@@ -37,9 +37,9 @@ export async function POST(req: NextRequest) {
 
     // Notify the host if vendor accepted
     if (status === "accepted") {
-      const hostEmail = (member.host as { email: string } | null)?.email;
-      const hostName = (member.host as { full_name: string } | null)?.full_name ?? "there";
-      const vendorName = (member.vendor as { business_name: string } | null)?.business_name ?? "A vendor";
+      const hostEmail = (member.host as unknown as { email: string } | null)?.email;
+      const hostName = (member.host as unknown as { full_name: string } | null)?.full_name ?? "there";
+      const vendorName = (member.vendor as unknown as { business_name: string } | null)?.business_name ?? "A vendor";
 
       if (hostEmail) {
         await resend.emails.send({

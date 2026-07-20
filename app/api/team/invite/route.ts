@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     // Send email notification to vendor (only if they have a user account)
-    const vendorEmail = (vendor.profiles as { email: string } | null)?.email ?? vendor.email;
+    const vendorEmail = (vendor.profiles as unknown as { email: string } | null)?.email ?? vendor.email;
     if (vendorEmail && vendor.user_id) {
       const dashboardUrl = `${SITE_URL}/dashboard/team`;
       await resend.emails.send({
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         <tr>
           <td style="background:#fff;padding:32px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
             <p style="margin:0 0 16px;font-size:15px;color:#374151;">
-              Hi <strong>${(vendor.profiles as { full_name: string } | null)?.full_name ?? vendor.business_name}</strong>,
+              Hi <strong>${(vendor.profiles as unknown as { full_name: string } | null)?.full_name ?? vendor.business_name}</strong>,
             </p>
             <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
               <strong>${hostProfile?.full_name ?? "A host"}</strong> has invited you to join their STR vendor team on StrVend.
