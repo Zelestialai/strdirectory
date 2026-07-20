@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, User, MessageSquare, Star, BarChart2, Zap } from "lucide-react";
+import { LayoutDashboard, User, MessageSquare, Star, BarChart2, Zap, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/dashboard",            label: "Overview",     icon: LayoutDashboard, exact: true },
   { href: "/dashboard/profile",    label: "Edit Profile", icon: User },
+  { href: "/dashboard/team",       label: "My Clients",   icon: Users },
   { href: "/dashboard/inquiries",  label: "Messages",     icon: MessageSquare },
   { href: "/dashboard/reviews",    label: "Reviews",      icon: Star },
   { href: "/dashboard/analytics",  label: "Analytics",    icon: BarChart2 },

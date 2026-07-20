@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Bookmark, MessageSquare, Star, Home, CalendarDays } from "lucide-react";
+import { LayoutDashboard, Bookmark, MessageSquare, Star, Home, CalendarDays, Users } from "lucide-react";
 
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -18,18 +18,18 @@ export default async function HostLayout({ children }: { children: React.ReactNo
   if (profile && profile.role === "admin") redirect("/admin");
 
   const navLinks = [
-    { href: "/host/dashboard", label: "Overview", icon: LayoutDashboard },
-    { href: "/host/dashboard/properties", label: "My Properties", icon: Home },
-    { href: "/host/dashboard/calendar", label: "Calendar", icon: CalendarDays },
-    { href: "/host/dashboard/saved", label: "Saved Vendors", icon: Bookmark },
-    { href: "/host/dashboard/inquiries", label: "My Inquiries", icon: MessageSquare },
-    { href: "/host/dashboard/reviews", label: "My Reviews", icon: Star },
+    { href: "/host/dashboard",                    label: "Overview",      icon: LayoutDashboard },
+    { href: "/host/dashboard/properties",         label: "My Properties", icon: Home },
+    { href: "/host/dashboard/calendar",           label: "Calendar",      icon: CalendarDays },
+    { href: "/host/dashboard/team",               label: "My Team",       icon: Users },
+    { href: "/host/dashboard/saved",              label: "Saved Vendors", icon: Bookmark },
+    { href: "/host/dashboard/inquiries",          label: "My Inquiries",  icon: MessageSquare },
+    { href: "/host/dashboard/reviews",            label: "My Reviews",    icon: Star },
   ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Sidebar */}
         <aside className="w-full lg:w-56 shrink-0">
           <div className="rounded-xl border bg-white p-4 space-y-1">
             <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Host Dashboard</p>

@@ -10,6 +10,7 @@ import { MapPin, Globe, Phone, Mail, CheckCircle2, Shield, Star, Tag, ChevronLef
 import type { Vendor, Review } from "@/types";
 import { cn, COLOR_CLASSES, CATEGORY_COLORS } from "@/lib/utils";
 import { SaveVendorButton } from "@/components/SaveVendorButton";
+import { InviteToTeamButton } from "@/components/InviteToTeamButton";
 import { GoogleReviewsTab } from "@/components/GoogleReviewsTab";
 import { FlagReviewButton } from "@/components/FlagReviewButton";
 
@@ -129,16 +130,22 @@ export default async function VendorProfilePage({
     }
   }
 
-  // Check if host has saved this vendor
+  // Check if host has saved this vendor, inquired, or added to team
   let isSaved = false;
   let hasInquired = false;
+  let teamStatus: "none" | "pending" | "accepted" | "declined" = "none";
+  let isHost = false;
   if (user) {
-    const [{ data: savedRow }, { data: inquiryRow }] = await Promise.all([
+    const [{ data: savedRow }, { data: inquiryRow }, { data: teamRow }, { data: profileRow }] = await Promise.all([
       supabase.from("saved_vendors").select("id").eq("host_id", user.id).eq("vendor_id", v.id).maybeSingle(),
       supabase.from("inquiries").select("id").eq("sender_id", user.id).eq("vendor_id", v.id).limit(1).maybeSingle(),
+      supabase.from("team_members").select("id, status").eq("host_id", user.id).eq("vendor_id", v.id).maybeSingle(),
+      supabase.from("profiles").select("role").eq("id", user.id).single(),
     ]);
     isSaved = !!savedRow;
     hasInquired = !!inquiryRow;
+    teamStatus = (teamRow?.status as typeof teamStatus) ?? "none";
+    isHost = profileRow?.role === "host" || profileRow?.role === "user";
   }
 
   // Record a profile view — skip if the viewer is the vendor themselves
@@ -290,6 +297,9 @@ export default async function VendorProfilePage({
                 )
               )}
               {user && <SaveVendorButton vendorId={v.id} isSaved={isSaved} />}
+              {user && isHost && user.id !== v.user_id && (
+                <InviteToTeamButton vendorId={v.id} initialStatus={teamStatus} />
+              )}
             </div>
             {v.phone && (
               <a href={`tel:${v.phone}`} className="btn-secondary justify-center">
