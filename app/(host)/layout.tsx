@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { LayoutDashboard, Bookmark, MessageSquare, Star, Home, CalendarDays, Users, Globe } from "lucide-react";
+import { LayoutDashboard, Bookmark, MessageSquare, Star, Home, CalendarDays, Users, Globe, Banknote } from "lucide-react";
 
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -22,6 +22,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
     { href: "/host/dashboard/properties",              label: "My Properties",   icon: Home },
     { href: "/host/dashboard/calendar",                label: "Calendar",        icon: CalendarDays },
     { href: "/host/dashboard/booking-sites",           label: "Direct Booking",  icon: Globe },
+    { href: "/host/dashboard/payouts",                 label: "Payouts",         icon: Banknote },
     { href: "/host/dashboard/team",                    label: "My Team",         icon: Users },
     { href: "/host/dashboard/saved",                   label: "Saved Vendors",   icon: Bookmark },
     { href: "/host/dashboard/inquiries",               label: "My Inquiries",    icon: MessageSquare },

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Fetch site + listing (public endpoint — no auth needed)
+  // Fetch site + listing (public endpoint — no guest auth needed)
   const { data: site, error: siteError } = await supabase
     .from('booking_sites')
     .select('*, booking_listings(*)')
@@ -63,10 +63,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       { status: 400 }
     )
   }
-
   if (guests > listing.max_guests) {
     return NextResponse.json(
-      { error: `This property fits a maximum of ${listing.max_guests} guests` },
+      { error: `Maximum ${listing.max_guests} guests allowed` },
       { status: 400 }
     )
   }
@@ -79,7 +78,25 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Booking total is too low to process' }, { status: 400 })
   }
 
-  // Create booking request first (so we have an ID for Stripe metadata)
+  // Fetch host's Stripe Connect status
+  const { data: hostProfile } = await supabase
+    .from('profiles')
+    .select('stripe_account_id, stripe_onboarding_complete')
+    .eq('id', site.host_id)
+    .single()
+
+  const hostStripeAccountId =
+    hostProfile?.stripe_account_id && hostProfile?.stripe_onboarding_complete
+      ? hostProfile.stripe_account_id
+      : null
+
+  // Platform fee (default 0 — host keeps everything)
+  const platformFeePercent = Number(process.env.PLATFORM_FEE_PERCENT || '0')
+  const platformFeeCents = hostStripeAccountId
+    ? Math.round(total * (platformFeePercent / 100))
+    : 0
+
+  // Create booking request first (need ID for Stripe metadata)
   const { data: bookingRequest, error: brError } = await supabase
     .from('booking_requests')
     .insert({
@@ -104,6 +121,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://strvend.com'
+
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       price_data: {
@@ -129,8 +147,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     })
   }
 
-  // Create Stripe Checkout Session
-  const session = await stripe.checkout.sessions.create({
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     payment_method_types: ['card'],
     mode: 'payment',
     customer_email: guest_email,
@@ -142,7 +159,19 @@ export async function POST(request: NextRequest, { params }: Params) {
     },
     success_url: `${baseUrl}/book/${site.slug}/confirmation?booking_id=${bookingRequest.id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/book/${site.slug}`,
-  })
+  }
+
+  // If host has Stripe Connect, route the payment directly to their account
+  if (hostStripeAccountId) {
+    sessionParams.payment_intent_data = {
+      application_fee_amount: platformFeeCents,
+      transfer_data: {
+        destination: hostStripeAccountId,
+      },
+    }
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams)
 
   // Stamp the booking with the Stripe session ID
   await supabase
