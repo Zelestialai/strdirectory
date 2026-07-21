@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Wifi, Car, Waves, Dumbbell, Wind, Utensils, Tv, Dog } from 'lucide-react'
 import BookingForm from './BookingForm'
