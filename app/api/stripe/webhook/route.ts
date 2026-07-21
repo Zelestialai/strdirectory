@@ -1,109 +1,138 @@
-import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { supabaseAdmin } from "@/lib/supabase/admin";
-import type Stripe from "stripe";
+import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
+import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 
-// Must use raw body for Stripe signature verification
-export const runtime = "nodejs";
+export const runtime = 'nodejs'
 
-async function activateTier(
-  vendorId: string,
-  tier: "pro" | "featured",
-  subscriptionId: string,
-  expiresAt: number | null
-) {
-  await supabaseAdmin
-    .from("vendors")
-    .update({
-      subscription_tier: tier,
-      stripe_subscription_id: subscriptionId,
-      is_featured: tier === "featured",
-      subscription_expires_at: expiresAt
-        ? new Date(expiresAt * 1000).toISOString()
-        : null,
-    })
-    .eq("id", vendorId);
-}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-async function deactivateTier(vendorId: string) {
-  await supabaseAdmin
-    .from("vendors")
-    .update({
-      subscription_tier: "free",
-      stripe_subscription_id: null,
-      is_featured: false,
-      subscription_expires_at: null,
-    })
-    .eq("id", vendorId);
-}
+export async function POST(request: NextRequest) {
+  const sig = request.headers.get('stripe-signature')
+  const body = await request.text()
 
-export async function POST(req: NextRequest) {
-  const body = await req.text();
-  const sig = req.headers.get("stripe-signature");
-
-  if (!sig) {
-    return NextResponse.json({ error: "No signature" }, { status: 400 });
+  if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Missing signature or webhook secret' }, { status: 400 })
   }
 
-  let event: Stripe.Event;
+  let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err) {
-    console.error("Webhook signature verification failed:", err);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    console.error('Stripe webhook signature verification failed:', err)
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const vendorId = session.metadata?.vendor_id;
-      const plan = session.metadata?.plan as "pro" | "featured" | undefined;
-      const subscriptionId = session.subscription as string;
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session
 
-      if (!vendorId || !plan || !subscriptionId) break;
-
-      // Fetch subscription to get period end
-      // Stripe v22: current_period_end moved to SubscriptionItem, not Subscription
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const periodEnd = subscription.items.data[0]?.current_period_end ?? null;
-      await activateTier(vendorId, plan, subscriptionId, periodEnd);
-      break;
+    const { booking_request_id, host_id } = session.metadata || {}
+    if (!booking_request_id || !host_id) {
+      return NextResponse.json({ received: true })
     }
 
-    case "customer.subscription.updated": {
-      const subscription = event.data.object as Stripe.Subscription;
-      const vendorId = subscription.metadata?.vendor_id;
-      const plan = subscription.metadata?.plan as "pro" | "featured" | undefined;
+    // Use service role key to bypass RLS for the webhook
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-      if (!vendorId || !plan) break;
+    const { data: booking, error: bookingError } = await supabase
+      .from('booking_requests')
+      .update({
+        status: 'paid',
+        stripe_payment_intent_id: session.payment_intent as string,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', booking_request_id)
+      .select(`
+        id, guest_name, guest_email, check_in, check_out, nights, guests, message, total_cents,
+        booking_sites (
+          slug,
+          booking_listings ( title )
+        )
+      `)
+      .single()
 
-      if (subscription.status === "active") {
-        const periodEnd = subscription.items.data[0]?.current_period_end ?? null;
-        await activateTier(vendorId, plan, subscription.id, periodEnd);
-      } else if (["canceled", "unpaid", "past_due"].includes(subscription.status)) {
-        await deactivateTier(vendorId);
-      }
-      break;
+    if (bookingError || !booking) {
+      console.error('Failed to update booking:', bookingError)
+      return NextResponse.json({ received: true })
     }
 
-    case "customer.subscription.deleted": {
-      const subscription = event.data.object as Stripe.Subscription;
-      const vendorId = subscription.metadata?.vendor_id;
-      if (vendorId) await deactivateTier(vendorId);
-      break;
+    // Get host profile for email
+    const { data: hostProfile } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', host_id)
+      .single()
+
+    const sites = booking.booking_sites as unknown as {
+      slug: string
+      booking_listings: Array<{ title: string }>
+    }
+    const listingTitle = sites?.booking_listings?.[0]?.title || 'Your property'
+    const totalFormatted = `$${((session.amount_total || 0) / 100).toFixed(2)}`
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://strvend.com'
+
+    // Email host
+    if (hostProfile?.email) {
+      await resend.emails.send({
+        from: 'STRVend Bookings <bookings@strvend.com>',
+        to: hostProfile.email,
+        subject: `New booking confirmed — ${listingTitle}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0d9488;">New Booking Confirmed 🎉</h2>
+            <p>You have a new direct booking for <strong>${listingTitle}</strong>.</p>
+            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Guest</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${booking.guest_name} (${booking.guest_email})</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Check-in</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${booking.check_in}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Check-out</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${booking.check_out}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Nights</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${booking.nights}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Guests</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${booking.guests}</td></tr>
+              <tr><td style="padding: 8px; color: #6b7280;">Total received</td>
+                  <td style="padding: 8px; font-weight: 700; color: #0d9488;">${totalFormatted}</td></tr>
+            </table>
+            ${booking.message ? `<p><strong>Guest message:</strong> "${booking.message}"</p>` : ''}
+            <a href="${baseUrl}/host/dashboard/booking-sites"
+               style="display: inline-block; background: #0d9488; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              View in Dashboard
+            </a>
+          </div>
+        `,
+      }).catch(console.error)
     }
 
-    case "invoice.payment_failed": {
-      // Optionally notify vendor — for now just log
-      const invoice = event.data.object as Stripe.Invoice;
-      console.warn("Payment failed for customer:", invoice.customer);
-      break;
-    }
+    // Email guest
+    await resend.emails.send({
+      from: 'STRVend Bookings <bookings@strvend.com>',
+      to: booking.guest_email,
+      subject: `Booking confirmed — ${listingTitle}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0d9488;">You're booked! 🏠</h2>
+          <p>Your booking for <strong>${listingTitle}</strong> has been confirmed and payment received.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Check-in</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${booking.check_in}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Check-out</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${booking.check_out}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Duration</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${booking.nights} night${booking.nights !== 1 ? 's' : ''}</td></tr>
+            <tr><td style="padding: 8px; color: #6b7280;">Total paid</td>
+                <td style="padding: 8px; font-weight: 700;">${totalFormatted}</td></tr>
+          </table>
+          <p style="color: #6b7280; font-size: 14px;">The host will be in touch shortly with check-in details. Have a great stay!</p>
+        </div>
+      `,
+    }).catch(console.error)
   }
 
-  return NextResponse.json({ received: true });
+  return NextResponse.json({ received: true })
 }
