@@ -1,34 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 import { formatDate } from "@/lib/utils";
-import type { Inquiry } from "@/types";
-import { MessageSquare } from "lucide-react";
-import { InquiryStatusButton } from "@/components/InquiryStatusButton";
+import { MessageSquare, ChevronRight, CornerDownRight } from "lucide-react";
+import Link from "next/link";
 
 export const metadata = { title: "Messages" };
 
 const STATUS_STYLES: Record<string, string> = {
   new:     "bg-green-50 text-green-700 border-green-200",
   read:    "bg-gray-50 text-gray-500 border-gray-200",
-  replied: "bg-blue-50 text-blue-700 border-blue-200",
+  replied: "bg-brand-50 text-brand-700 border-brand-200",
   closed:  "bg-gray-100 text-gray-400 border-gray-200",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  new: "New",
+  read: "Unread",
+  replied: "Replied",
+  closed: "Archived",
+};
+
 const FILTERS = [
-  { label: "All",          value: ""         },
-  { label: "Needs Reply",  value: "pending"  },
-  { label: "Replied",      value: "replied"  },
-  { label: "Archived",     value: "archived" },
+  { label: "All",      value: "" },
+  { label: "Unread",   value: "unread" },
+  { label: "Replied",  value: "replied" },
+  { label: "Archived", value: "archived" },
 ];
 
-async function updateStatus(inquiryId: string, status: string) {
-  "use server";
-  const supabase = createClient();
-  await supabase.from("inquiries").update({ status }).eq("id", inquiryId);
-  revalidatePath("/dashboard/inquiries");
-}
-
-interface SearchParams { filter?: string; }
+interface SearchParams { filter?: string }
 
 export default async function InquiriesPage({ searchParams }: { searchParams: SearchParams }) {
   const supabase = createClient();
@@ -50,37 +48,33 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
     );
   }
 
-  // Fetch ALL inquiries first so we can count unread regardless of active filter
+  // Fetch inquiries + reply counts in one query
   const { data: allInquiries } = await supabase
     .from("inquiries")
-    .select("*")
+    .select("*, inquiry_replies(id)")
     .eq("vendor_id", vendor.id)
     .order("created_at", { ascending: false });
 
-  // Auto-mark all 'new' inquiries as 'read' now that the vendor is viewing them
+  // Auto-mark 'new' → 'read' when vendor views the list
   const newIds = (allInquiries ?? [])
     .filter((i) => i.status === "new")
     .map((i) => i.id);
   if (newIds.length > 0) {
-    await supabase
-      .from("inquiries")
-      .update({ status: "read" })
-      .in("id", newIds);
+    await supabase.from("inquiries").update({ status: "read" }).in("id", newIds);
   }
 
   const unreadCount = newIds.length;
 
-  // Apply client-side filter
+  // Apply filter
   const inquiries = (allInquiries ?? []).filter((i) => {
-    if (activeFilter === "pending")  return i.status === "new" || i.status === "read";
+    if (activeFilter === "unread")   return i.status === "new" || i.status === "read";
     if (activeFilter === "replied")  return i.status === "replied";
     if (activeFilter === "archived") return i.status === "closed";
-    return true; // "all"
+    return true;
   });
 
-  // Count per-filter for badges
   const counts = {
-    pending:  (allInquiries ?? []).filter((i) => i.status === "new" || i.status === "read").length,
+    unread:   (allInquiries ?? []).filter((i) => i.status === "new" || i.status === "read").length,
     replied:  (allInquiries ?? []).filter((i) => i.status === "replied").length,
     archived: (allInquiries ?? []).filter((i) => i.status === "closed").length,
   };
@@ -105,7 +99,7 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
           const count = value === "" ? (allInquiries?.length ?? 0) : counts[value as keyof typeof counts];
           const isActive = activeFilter === value;
           return (
-            <a
+            <Link
               key={value}
               href={`/dashboard/inquiries${value ? `?filter=${value}` : ""}`}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
@@ -122,65 +116,79 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                   {count}
                 </span>
               )}
-            </a>
+            </Link>
           );
         })}
       </div>
 
-      {inquiries && inquiries.length > 0 ? (
-        <div className="space-y-4">
-          {(inquiries as Inquiry[]).map((inq) => (
-            <div key={inq.id} className="card p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-gray-800">{inq.sender_name ?? "Anonymous"}</p>
-                    <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[inq.status] ?? STATUS_STYLES.read}`}>
-                      {inq.status}
-                    </span>
-                  </div>
-                  {inq.sender_email && (
-                    <a href={`mailto:${inq.sender_email}`} className="text-sm text-brand-600 hover:underline block">
-                      {inq.sender_email}
-                    </a>
-                  )}
-                  {inq.sender_phone && (
-                    <a href={`tel:${inq.sender_phone}`} className="text-sm text-gray-500 block">
-                      {inq.sender_phone}
-                    </a>
-                  )}
+      {inquiries.length > 0 ? (
+        <div className="space-y-3">
+          {inquiries.map((inq) => {
+            const replyCount = (inq.inquiry_replies as { id: string }[] | null)?.length ?? 0;
+            const isUnread = inq.status === "new" || inq.status === "read";
+
+            return (
+              <Link
+                key={inq.id}
+                href={`/dashboard/inquiries/${inq.id}`}
+                className={`card p-4 flex items-start gap-4 hover:shadow-md transition group ${
+                  isUnread ? "border-brand-100 bg-brand-50/30" : ""
+                }`}
+              >
+                {/* Avatar */}
+                <div className={`flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                  isUnread ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"
+                }`}>
+                  {(inq.sender_name ?? "?").charAt(0).toUpperCase()}
                 </div>
-                <p className="text-xs text-gray-400 whitespace-nowrap shrink-0">{formatDate(inq.created_at)}</p>
-              </div>
 
-              <p className="mt-3 text-sm text-gray-700 bg-gray-50 rounded-lg p-3 leading-relaxed">
-                {inq.message}
-              </p>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2 mb-0.5 flex-wrap">
+                    <p className={`text-sm font-semibold ${isUnread ? "text-gray-900" : "text-gray-700"}`}>
+                      {inq.sender_name ?? "Anonymous"}
+                      {isUnread && (
+                        <span className="ml-2 inline-block h-1.5 w-1.5 rounded-full bg-brand-500 align-middle" />
+                      )}
+                    </p>
+                    <span className="text-xs text-gray-400 shrink-0">{formatDate(inq.created_at)}</span>
+                  </div>
 
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                {inq.sender_email && (
-                  <a
-                    href={`mailto:${inq.sender_email}?subject=Re: Your inquiry on STR Pro Directory`}
-                    className="btn-primary text-xs"
-                  >
-                    Reply via Email
-                  </a>
-                )}
-                <InquiryStatusButton
-                  inquiryId={inq.id}
-                  currentStatus={inq.status}
-                  updateStatus={updateStatus}
-                />
-              </div>
-            </div>
-          ))}
+                  <p className="text-sm text-gray-600 line-clamp-1 mb-2">
+                    {inq.message}
+                  </p>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${
+                      STATUS_STYLES[inq.status] ?? STATUS_STYLES.read
+                    }`}>
+                      {STATUS_LABEL[inq.status] ?? inq.status}
+                    </span>
+
+                    {replyCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs text-brand-600 font-medium">
+                        <CornerDownRight className="h-3 w-3" />
+                        {replyCount} {replyCount === 1 ? "reply" : "replies"}
+                      </span>
+                    )}
+
+                    {inq.sender_email && (
+                      <span className="text-xs text-gray-400 truncate max-w-[160px]">{inq.sender_email}</span>
+                    )}
+                  </div>
+                </div>
+
+                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-400 shrink-0 mt-1 transition" />
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className="card p-12 text-center text-gray-400">
           <MessageSquare className="mx-auto h-10 w-10 opacity-30 mb-3" />
           <p>
             {activeFilter
-              ? `No ${FILTERS.find(f => f.value === activeFilter)?.label.toLowerCase()} messages.`
+              ? `No ${FILTERS.find((f) => f.value === activeFilter)?.label.toLowerCase()} messages.`
               : "No messages yet. Share your profile to start receiving inquiries!"}
           </p>
         </div>
