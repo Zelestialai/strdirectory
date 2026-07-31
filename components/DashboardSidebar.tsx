@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, User, MessageSquare, Star, BarChart2, Zap, Users, Settings } from "lucide-react";
+import { LayoutDashboard, User, MessageSquare, Star, BarChart2, Zap, Users, Settings, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -12,6 +12,7 @@ const navLinks = [
   { href: "/dashboard/reviews",    label: "Reviews",      icon: Star },
   { href: "/dashboard/analytics",  label: "Analytics",    icon: BarChart2 },
   { href: "/dashboard/upgrade",    label: "Upgrade",      icon: Zap },
+  { href: "/dashboard/billing",    label: "Billing",      icon: CreditCard },
   { href: "/dashboard/settings",   label: "Settings",     icon: Settings },
 ];
 
