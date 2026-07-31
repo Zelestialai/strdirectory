@@ -46,17 +46,20 @@ export async function POST(req: NextRequest) {
   if (vendor && process.env.RESEND_API_KEY) {
     let notifyEmail = vendor.notification_email ?? vendor.email ?? null;
 
-    // Fall back to the vendor's auth account email
-    if (!notifyEmail && vendor.user_id) {
+    // Fetch the owner's profile once — for the fallback email AND their
+    // notification preference. Respect email_on_inquiry (default true).
+    let wantsInquiryEmail = true;
+    if (vendor.user_id) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("email")
+        .select("email, email_on_inquiry")
         .eq("id", vendor.user_id)
         .single();
-      notifyEmail = profile?.email ?? null;
+      if (!notifyEmail) notifyEmail = profile?.email ?? null;
+      wantsInquiryEmail = profile?.email_on_inquiry ?? true;
     }
 
-    if (notifyEmail) {
+    if (notifyEmail && wantsInquiryEmail) {
       try {
         await sendInquiryNotification({
           vendorName:   vendor.business_name,
