@@ -2,11 +2,9 @@ import Link from "next/link";
 import { Search, Star, Shield, Zap, MapPin, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveMarket } from "@/lib/market";
-import { getVendorCityCounts } from "@/lib/supabase/queries";
 import { VendorCard } from "@/components/VendorCard";
 import { CategoryCard } from "@/components/CategoryCard";
-import { MarketCard } from "@/components/MarketCard";
-import type { Category, Vendor, Market } from "@/types";
+import type { Category, Vendor } from "@/types";
 
 export default async function HomePage() {
   const supabase = createClient();
@@ -15,18 +13,6 @@ export default async function HomePage() {
     .from("categories")
     .select("*")
     .order("name");
-
-  const { data: markets } = await supabase
-    .from("markets")
-    .select("*")
-    .eq("is_active", true)
-    .order("name")
-    .limit(8);
-
-  const cityCount = await getVendorCityCounts(supabase);
-  function countForMarket(market: Market) {
-    return market.cities.reduce((sum, city) => sum + (cityCount[city] ?? 0), 0);
-  }
 
   // Active market (IP geo / cookie / profile) → scope the spotlight to it
   const activeMarket = await getActiveMarket();
@@ -150,32 +136,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-
-      {/* ── Browse by Market ── */}
-      {markets && markets.length > 0 && (
-        <section className="bg-gray-50 py-14">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Browse by Market</h2>
-                <p className="mt-1 text-sm text-gray-500">Covers each city and all surrounding STR hotspots.</p>
-              </div>
-              <Link href="/markets" className="text-sm text-brand-600 font-medium hover:text-brand-800 transition whitespace-nowrap hidden sm:block">
-                All 106 markets →
-              </Link>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {(markets as Market[]).map((market) => (
-                <MarketCard
-                  key={market.id}
-                  market={market}
-                  vendorCount={countForMarket(market)}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── Featured vendors ── */}
       {featured && featured.length > 0 && (
