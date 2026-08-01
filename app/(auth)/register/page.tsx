@@ -225,7 +225,7 @@ export default function RegisterPage() {
                         ? isVendor ? "bg-coral-500 text-white" : "bg-brand-600 text-white"
                         : "bg-gray-100 text-gray-400"
                     }`}>
-                      <Icon className="h-4.5 w-4.5" />
+                      <Icon className="h-5 w-5" />
                     </span>
                     <div className="min-w-0">
                       <p className={`text-sm font-semibold ${active ? isVendor ? "text-coral-700" : "text-brand-700" : "text-gray-700"}`}>

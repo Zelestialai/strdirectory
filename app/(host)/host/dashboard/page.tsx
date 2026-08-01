@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Bookmark, MessageSquare, Star, ArrowRight, Search, Home, CalendarDays } from "lucide-react";
+import { Bookmark, MessageSquare, Star, ArrowRight, Search, Home, CalendarDays, Globe, Sparkles } from "lucide-react";
 
 export const metadata = { title: "Host Dashboard" };
 
@@ -23,6 +23,7 @@ export default async function HostDashboardPage() {
     { count: reviewCount },
     { count: propertyCount },
     { count: upcomingCount },
+    { count: bookingSiteCount },
   ] = await Promise.all([
     supabase.from("saved_vendors").select("*", { count: "exact", head: true }).eq("host_id", user!.id),
     supabase.from("inquiries").select("*", { count: "exact", head: true }).eq("sender_id", user!.id),
@@ -34,6 +35,7 @@ export default async function HostDashboardPage() {
       .eq("host_id", user!.id)
       .gte("end_date", today)
       .lte("start_date", in14),
+    supabase.from("booking_sites").select("*", { count: "exact", head: true }).eq("host_id", user!.id),
   ]);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
@@ -60,12 +62,41 @@ export default async function HostDashboardPage() {
         {stats.map(({ label, value, icon: Icon, color, href }) => (
           <Link key={label} href={href} className="card p-4 flex flex-col items-center text-center gap-1.5 hover:shadow-md transition-shadow">
             <span className={`flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 ${color}`}>
-              <Icon className="h-4.5 w-4.5" />
+              <Icon className="h-5 w-5" />
             </span>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
             <p className="text-xs text-gray-500 leading-tight">{label}</p>
           </Link>
         ))}
+      </div>
+
+      {/* Direct Booking — prominent promo */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-coral-500 to-coral-600 text-white p-6 shadow-sm">
+        <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/10" />
+        <div className="absolute -bottom-10 -left-6 h-32 w-32 rounded-full bg-white/5" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="max-w-lg">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold mb-3">
+              <Sparkles className="h-3 w-3" /> Commission-free bookings
+            </div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              {(bookingSiteCount ?? 0) > 0 ? "Your direct booking site" : "Launch your direct booking site"}
+            </h2>
+            <p className="mt-1.5 text-sm text-white/90 leading-relaxed">
+              {(bookingSiteCount ?? 0) > 0
+                ? `You have ${bookingSiteCount} booking site${bookingSiteCount !== 1 ? "s" : ""} live. Take reservations directly and keep 100% of the nightly rate.`
+                : "Import your Airbnb listing and take direct reservations — no OTA commissions, paid straight to your Stripe account."}
+            </p>
+          </div>
+          <Link
+            href="/host/dashboard/booking-sites"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-coral-700 hover:bg-coral-50 transition self-start"
+          >
+            {(bookingSiteCount ?? 0) > 0 ? "Manage booking sites" : "Set up direct booking"}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Quick actions */}

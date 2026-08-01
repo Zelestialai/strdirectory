@@ -10,7 +10,9 @@ export interface NotificationPrefs {
   email_product_updates: boolean;
 }
 
-const ITEMS: { key: keyof NotificationPrefs; label: string; description: string }[] = [
+type ToggleItem = { key: keyof NotificationPrefs; label: string; description: string };
+
+const VENDOR_ITEMS: ToggleItem[] = [
   {
     key: "email_on_inquiry",
     label: "New inquiries",
@@ -33,7 +35,32 @@ const ITEMS: { key: keyof NotificationPrefs; label: string; description: string 
   },
 ];
 
-export function NotificationToggles({ initial }: { initial: NotificationPrefs }) {
+/** Host-facing labels for the same underlying preference columns. */
+export const HOST_NOTIFICATION_ITEMS: ToggleItem[] = [
+  {
+    key: "email_on_inquiry",
+    label: "Vendor replies",
+    description: "Email me when a vendor replies to one of my inquiries.",
+  },
+  {
+    key: "email_weekly_digest",
+    label: "Weekly digest",
+    description: "A weekly summary of vendor activity and upcoming reservations.",
+  },
+  {
+    key: "email_product_updates",
+    label: "Product updates",
+    description: "Occasional news, tips and feature announcements from STRVend.",
+  },
+];
+
+export function NotificationToggles({
+  initial,
+  items = VENDOR_ITEMS,
+}: {
+  initial: NotificationPrefs;
+  items?: ToggleItem[];
+}) {
   const [prefs, setPrefs] = useState<NotificationPrefs>(initial);
   const [savingKey, setSavingKey] = useState<string | null>(null);
 
@@ -61,7 +88,7 @@ export function NotificationToggles({ initial }: { initial: NotificationPrefs })
       description="Choose which emails STRVend sends you. Changes save automatically."
     >
       <ul className="divide-y divide-gray-100 -my-1">
-        {ITEMS.map(({ key, label, description }) => (
+        {items.map(({ key, label, description }) => (
           <li key={key} className="flex items-center justify-between gap-4 py-3">
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-800">{label}</p>
