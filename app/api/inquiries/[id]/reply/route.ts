@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { createNotification } from '@/lib/notifications'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://strvend.com'
@@ -38,7 +39,7 @@ export async function POST(
   // Verify inquiry belongs to this vendor
   const { data: inquiry } = await supabase
     .from('inquiries')
-    .select('id, sender_name, sender_email, message')
+    .select('id, sender_id, sender_name, sender_email, message')
     .eq('id', params.id)
     .eq('vendor_id', vendor.id)
     .single()
@@ -68,6 +69,17 @@ export async function POST(
     .from('inquiries')
     .update({ status: 'replied' })
     .eq('id', inquiry.id)
+
+  // Notify the guest (if they're a registered user) of the reply
+  if (inquiry.sender_id) {
+    await createNotification({
+      userId: inquiry.sender_id,
+      type: 'reply',
+      title: `${vendor.business_name} replied`,
+      body: 'You have a new reply to your inquiry.',
+      link: '/host/dashboard/inquiries',
+    })
+  }
 
   // Email the original sender if we have their email
   if (inquiry.sender_email) {

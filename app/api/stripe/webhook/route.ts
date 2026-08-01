@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { createNotification } from '@/lib/notifications'
 
 export const runtime = 'nodejs'
 
@@ -158,12 +159,22 @@ export async function POST(request: NextRequest) {
       .update({ subscription_tier: 'free', stripe_subscription_id: null })
       .eq('id', vendorId)
 
-    // Get vendor email to notify them
+    // Get vendor email + owner to notify them
     const { data: vendor } = await supabase
       .from('vendors')
-      .select('business_name, profiles!vendors_user_id_fkey(email)')
+      .select('business_name, user_id, profiles!vendors_user_id_fkey(email)')
       .eq('id', vendorId)
       .single()
+
+    if (vendor?.user_id) {
+      await createNotification({
+        userId: vendor.user_id,
+        type: 'subscription',
+        title: 'Subscription cancelled',
+        body: 'Your plan was cancelled and your listing moved to Free.',
+        link: '/dashboard/billing',
+      })
+    }
 
     const email = (vendor?.profiles as unknown as { email: string } | null)?.email
     if (email) {
@@ -186,9 +197,19 @@ export async function POST(request: NextRequest) {
     const supabase = adminClient()
     const { data: vendor } = await supabase
       .from('vendors')
-      .select('business_name, profiles!vendors_user_id_fkey(email)')
+      .select('business_name, user_id, profiles!vendors_user_id_fkey(email)')
       .eq('stripe_customer_id', customerId)
       .single()
+
+    if (vendor?.user_id) {
+      await createNotification({
+        userId: vendor.user_id,
+        type: 'subscription',
+        title: 'Payment failed',
+        body: 'We couldn\'t process your subscription payment. Update your card.',
+        link: '/dashboard/billing',
+      })
+    }
 
     const email = (vendor?.profiles as unknown as { email: string } | null)?.email
     if (email) {

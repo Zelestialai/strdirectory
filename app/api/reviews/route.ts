@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { createNotification, getVendorOwnerId } from "@/lib/notifications";
 
 const reviewSchema = z.object({
   vendor_id: z.string().uuid(),
@@ -40,5 +41,18 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the vendor owner of the new review
+  const ownerId = await getVendorOwnerId(parsed.data.vendor_id);
+  if (ownerId) {
+    await createNotification({
+      userId: ownerId,
+      type: "review",
+      title: "New review",
+      body: `You received a ${parsed.data.rating}-star review.`,
+      link: "/dashboard/reviews",
+    });
+  }
+
   return NextResponse.json({ data }, { status: 201 });
 }

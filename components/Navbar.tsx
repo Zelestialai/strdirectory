@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { NotificationBell } from "@/components/NotificationBell";
 import { Menu, X, Building2, ChevronDown, MapPin } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import type { Category } from "@/types";
@@ -254,6 +255,8 @@ export function Navbar() {
         {/* Auth actions */}
         <div className="hidden md:flex items-center gap-3">
           {user ? (
+            <>
+            <NotificationBell />
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -270,6 +273,7 @@ export function Navbar() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             <>
               <Link href="/login" className="btn-secondary py-1.5">Sign In</Link>

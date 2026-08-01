@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { sendInquiryNotification } from "@/lib/email";
+import { createNotification } from "@/lib/notifications";
 
 const inquirySchema = z.object({
   vendor_id:    z.string().uuid(),
@@ -42,6 +43,17 @@ export async function POST(req: NextRequest) {
     .select("business_name, email, notification_email, slug, user_id")
     .eq("id", parsed.data.vendor_id)
     .single();
+
+  // In-app notification for the vendor owner (independent of email prefs)
+  if (vendor?.user_id) {
+    await createNotification({
+      userId: vendor.user_id,
+      type: "inquiry",
+      title: "New inquiry",
+      body: `${parsed.data.sender_name} sent you a message.`,
+      link: "/dashboard/inquiries",
+    });
+  }
 
   if (vendor && process.env.RESEND_API_KEY) {
     let notifyEmail = vendor.notification_email ?? vendor.email ?? null;
