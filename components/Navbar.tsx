@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
+import { MarketSwitcher } from "@/components/MarketSwitcher";
 import { Menu, X, Building2, ChevronDown, MapPin } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import type { Category } from "@/types";
@@ -144,7 +145,19 @@ const ALL_CATEGORIES = [
   { name: "Legal & Regulations",         slug: "legal-regulations" },
 ];
 
-export function Navbar() {
+interface MarketBrief {
+  name: string;
+  slug: string;
+  state: string;
+}
+
+export function Navbar({
+  currentMarket = null,
+  markets = [],
+}: {
+  currentMarket?: MarketBrief | null;
+  markets?: MarketBrief[];
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -181,11 +194,16 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 text-brand-700 font-bold text-lg shrink-0">
-          <Building2 className="h-5 w-5" />
-          StrVend
-        </Link>
+        {/* Logo + market switcher */}
+        <div className="flex items-center gap-3 shrink-0">
+          <Link href="/" className="flex items-center gap-2 text-brand-700 font-bold text-lg">
+            <Building2 className="h-5 w-5" />
+            StrVend
+          </Link>
+          <div className="hidden sm:block">
+            <MarketSwitcher current={currentMarket} markets={markets} />
+          </div>
+        </div>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600">

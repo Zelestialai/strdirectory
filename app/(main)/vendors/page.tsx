@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveMarket } from "@/lib/market";
 import { VendorCard } from "@/components/VendorCard";
 import { VendorSearchControls } from "@/components/VendorSearchControls";
 import type { Vendor, Category, Market } from "@/types";
@@ -31,9 +32,21 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
     supabase.from("markets").select("*").eq("is_active", true).order("name"),
   ]);
 
-  const activeMarket = searchParams.market
-    ? (markets as Market[])?.find((m) => m.slug === searchParams.market)
-    : null;
+  // Market scoping (Yelp-style): if the user gave no location filter, default to
+  // their active market. `?market=all` is the explicit escape hatch to browse everywhere.
+  const noLocationFilter =
+    !searchParams.market && !searchParams.city && !searchParams.state;
+  let activeMarket =
+    searchParams.market && searchParams.market !== "all"
+      ? (markets as Market[])?.find((m) => m.slug === searchParams.market)
+      : null;
+  if (noLocationFilter) {
+    const detected = await getActiveMarket();
+    if (detected) {
+      activeMarket =
+        (markets as Market[])?.find((m) => m.slug === detected.slug) ?? detected;
+    }
+  }
   const activeCategory = (categories as Category[])?.find((c) => c.slug === searchParams.category);
 
   // ── Build query ──────────────────────────────────────────────────────────────

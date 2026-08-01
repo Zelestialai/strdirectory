@@ -16,7 +16,7 @@ type FormValues = z.infer<typeof schema>;
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/dashboard";
+  const explicitNext = searchParams.get("next"); // null if not provided
   const supabase = createClient();
 
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<FormValues>({
@@ -24,13 +24,26 @@ function LoginForm() {
   });
 
   const onSubmit = async ({ email, password }: FormValues) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError("root", { message: error.message });
-    } else {
-      router.push(next);
-      router.refresh();
+      return;
     }
+
+    // If the caller asked for a specific destination, honour it.
+    // Otherwise route by role so hosts land on their own dashboard.
+    let destination = explicitNext ?? "/dashboard";
+    if (!explicitNext && data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+      if (profile?.role === "host") destination = "/host/dashboard";
+    }
+
+    router.push(destination);
+    router.refresh();
   };
 
   return (

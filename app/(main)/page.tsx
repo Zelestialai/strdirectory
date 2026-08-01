@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search, Star, Shield, Zap, MapPin, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveMarket } from "@/lib/market";
 import { getVendorCityCounts } from "@/lib/supabase/queries";
 import { VendorCard } from "@/components/VendorCard";
 import { CategoryCard } from "@/components/CategoryCard";
@@ -27,13 +28,33 @@ export default async function HomePage() {
     return market.cities.reduce((sum, city) => sum + (cityCount[city] ?? 0), 0);
   }
 
-  const { data: featured } = await supabase
-    .from("vendors")
-    .select("*, category:categories(*)")
-    .eq("is_active", true)
-    .eq("is_featured", true)
-    .order("avg_rating", { ascending: false })
-    .limit(6);
+  // Active market (IP geo / cookie / profile) → scope the spotlight to it
+  const activeMarket = await getActiveMarket();
+
+  let featured: Vendor[] | null = null;
+  if (activeMarket) {
+    const { data } = await supabase
+      .from("vendors")
+      .select("*, category:categories(*)")
+      .eq("is_active", true)
+      .in("city", activeMarket.cities)
+      .order("avg_rating", { ascending: false })
+      .order("review_count", { ascending: false })
+      .limit(6);
+    featured = data as Vendor[] | null;
+  }
+  // Fallback to globally featured vendors if the market has none yet
+  const featuredIsMarketScoped = !!(featured && featured.length > 0);
+  if (!featuredIsMarketScoped) {
+    const { data } = await supabase
+      .from("vendors")
+      .select("*, category:categories(*)")
+      .eq("is_active", true)
+      .eq("is_featured", true)
+      .order("avg_rating", { ascending: false })
+      .limit(6);
+    featured = data as Vendor[] | null;
+  }
 
   return (
     <div>
@@ -161,8 +182,22 @@ export default async function HomePage() {
         <section className="py-14">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Featured Vendors</h2>
-              <Link href="/vendors" className="text-sm text-brand-600 font-medium hover:text-brand-800 transition hidden sm:block">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {featuredIsMarketScoped && activeMarket
+                    ? `Top providers in ${activeMarket.name}`
+                    : "Featured Vendors"}
+                </h2>
+                {featuredIsMarketScoped && activeMarket && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    Highest-rated STR service providers near {activeMarket.name}, {activeMarket.state}.
+                  </p>
+                )}
+              </div>
+              <Link
+                href={activeMarket ? `/vendors?market=${activeMarket.slug}` : "/vendors"}
+                className="text-sm text-brand-600 font-medium hover:text-brand-800 transition hidden sm:block"
+              >
                 Browse all →
               </Link>
             </div>
