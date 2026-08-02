@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
     // Get vendor email + owner to notify them
     const { data: vendor } = await supabase
       .from('vendors')
-      .select('business_name, user_id, profiles!vendors_user_id_fkey(email)')
+      .select('business_name, user_id, email')
       .eq('id', vendorId)
       .single()
 
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const email = (vendor?.profiles as unknown as { email: string } | null)?.email
+    const email = vendor?.email
     if (email) {
       await resend.emails.send({
         from: 'STRVend <noreply@strvend.com>',
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
     const supabase = adminClient()
     const { data: vendor } = await supabase
       .from('vendors')
-      .select('business_name, user_id, profiles!vendors_user_id_fkey(email)')
+      .select('business_name, user_id, email')
       .eq('stripe_customer_id', customerId)
       .single()
 
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const email = (vendor?.profiles as unknown as { email: string } | null)?.email
+    const email = vendor?.email
     if (email) {
       await resend.emails.send({
         from: 'STRVend <noreply@strvend.com>',

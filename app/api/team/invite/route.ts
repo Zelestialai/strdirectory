@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { resend, FROM_EMAIL, SITE_URL } from "@/lib/email";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,19 +12,22 @@ export async function POST(req: NextRequest) {
     const { vendor_id } = await req.json();
     if (!vendor_id) return NextResponse.json({ error: "Missing vendor_id" }, { status: 400 });
 
-    // Get vendor info + email
-    const { data: vendor } = await supabase
+    // Get vendor info + email. NOTE: profiles has no `email` column (email lives
+    // on auth.users), so we only embed full_name and use the vendor's own email.
+    const { data: vendor, error: vendorError } = await supabase
       .from("vendors")
-      .select("id, business_name, email, user_id, profiles:user_id(full_name, email)")
+      .select("id, business_name, email, user_id, profiles:user_id(full_name)")
       .eq("id", vendor_id)
       .single();
 
-    if (!vendor) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    if (vendorError || !vendor) {
+      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    }
 
-    // Get host profile
+    // Get host profile (profiles has no email column)
     const { data: hostProfile } = await supabase
       .from("profiles")
-      .select("full_name, email")
+      .select("full_name")
       .eq("id", user.id)
       .single();
 
@@ -46,8 +50,19 @@ export async function POST(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+    // In-app notification for the vendor
+    if (vendor.user_id) {
+      await createNotification({
+        userId: vendor.user_id,
+        type: "system",
+        title: "New team invitation",
+        body: `${hostProfile?.full_name ?? "A host"} invited you to their team.`,
+        link: "/dashboard/team",
+      });
+    }
+
     // Send email notification to vendor (only if they have a user account)
-    const vendorEmail = (vendor.profiles as unknown as { email: string } | null)?.email ?? vendor.email;
+    const vendorEmail = vendor.email;
     if (vendorEmail && vendor.user_id) {
       const dashboardUrl = `${SITE_URL}/dashboard/team`;
       await resend.emails.send({

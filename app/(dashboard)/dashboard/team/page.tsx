@@ -37,7 +37,7 @@ export default async function VendorTeamPage({
     .select(`
       id, status, invited_at,
       host:host_id (
-        id, full_name, email
+        id, full_name
       )
     `)
     .eq("vendor_user_id", user!.id)

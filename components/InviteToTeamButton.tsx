@@ -12,6 +12,7 @@ interface Props {
 export function InviteToTeamButton({ vendorId, initialStatus, className = "" }: Props) {
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (status === "accepted") {
     return (
@@ -31,6 +32,7 @@ export function InviteToTeamButton({ vendorId, initialStatus, className = "" }: 
 
   async function handleInvite() {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/team/invite", {
         method: "POST",
@@ -39,20 +41,28 @@ export function InviteToTeamButton({ vendorId, initialStatus, className = "" }: 
       });
       if (res.ok) {
         setStatus("pending");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Couldn't send invite. Please try again.");
       }
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <button
-      onClick={handleInvite}
-      disabled={loading}
-      className={`inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-100 disabled:opacity-50 transition ${className}`}
-    >
-      <Users className="h-4 w-4" />
-      {loading ? "Sending…" : "Add to Team"}
-    </button>
+    <div className={className}>
+      <button
+        onClick={handleInvite}
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-100 disabled:opacity-50 transition"
+      >
+        <Users className="h-4 w-4" />
+        {loading ? "Sending…" : "Add to Team"}
+      </button>
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
   );
 }
