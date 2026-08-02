@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { createTurnoverTask } from "@/lib/turnover";
 
 // ─── iCal parser ─────────────────────────────────────────────────────────────
 function parseDate(value: string): string {
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
     // Verify ownership + get ical_url
     const { data: property } = await supabase
       .from("properties")
-      .select("id, ical_url, host_id")
+      .select("id, name, ical_url, host_id")
       .eq("id", property_id)
       .eq("host_id", user.id)
       .single();
@@ -163,7 +164,34 @@ export async function POST(req: NextRequest) {
       .update({ last_synced_at: new Date().toISOString() })
       .eq("id", property.id);
 
-    return NextResponse.json({ synced: events.length });
+    // Auto-generate a turnover cleaning task per upcoming checkout
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: upcoming } = await supabase
+      .from("calendar_events")
+      .select("id, end_date")
+      .eq("property_id", property.id)
+      .gte("end_date", today);
+
+    const { data: hostProfile } = await supabase
+      .from("profiles")
+      .select("preferred_market")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    let turnoversCreated = 0;
+    for (const ev of upcoming ?? []) {
+      const created = await createTurnoverTask({
+        hostId: user.id,
+        title: `Turnover cleaning — ${property.name}`,
+        scheduledDate: ev.end_date,
+        propertyId: property.id,
+        calendarEventId: ev.id,
+        marketSlug: hostProfile?.preferred_market ?? null,
+      });
+      if (created) turnoversCreated++;
+    }
+
+    return NextResponse.json({ synced: events.length, turnovers: turnoversCreated });
   } catch (err) {
     console.error("Calendar sync error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

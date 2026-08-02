@@ -13,6 +13,7 @@ import {
   Star,
   Users,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ const GROUPS: NavGroup[] = [
       { href: "/host/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
       { href: "/host/dashboard/properties", label: "My Properties", icon: Home },
       { href: "/host/dashboard/calendar", label: "Calendar", icon: CalendarDays },
+      { href: "/host/dashboard/turnovers", label: "Turnovers", icon: Sparkles },
       { href: "/host/dashboard/booking-sites", label: "Direct Booking", icon: Globe, highlight: true },
       { href: "/host/dashboard/payouts", label: "Payouts", icon: Banknote },
     ],
