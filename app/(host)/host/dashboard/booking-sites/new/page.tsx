@@ -81,6 +81,9 @@ export default function NewBookingSitePage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('import')
   const [draft, setDraft] = useState<ListingDraft>(EMPTY_DRAFT)
+  // Raw text the user typed for money inputs — avoids reformatting mid-typing
+  const [rateStr, setRateStr] = useState('')
+  const [feeStr, setFeeStr] = useState('')
   const [airbnbUrl, setAirbnbUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [importWarning, setImportWarning] = useState('')
@@ -475,12 +478,15 @@ export default function NewBookingSitePage() {
                 <input
                   type="number"
                   min="1"
-                  step="0.01"
-                  placeholder="150.00"
-                  value={centsToStr(draft.nightlyRateCents)}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, nightlyRateCents: dollarsToCents(e.target.value) }))
-                  }
+                  step="1"
+                  inputMode="decimal"
+                  placeholder="150"
+                  value={rateStr}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setRateStr(v)
+                    setDraft((d) => ({ ...d, nightlyRateCents: dollarsToCents(v) }))
+                  }}
                   className="w-full pl-6 pr-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
@@ -494,12 +500,15 @@ export default function NewBookingSitePage() {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
-                  placeholder="75.00"
-                  value={centsToStr(draft.cleaningFeeCents)}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, cleaningFeeCents: dollarsToCents(e.target.value) }))
-                  }
+                  step="1"
+                  inputMode="decimal"
+                  placeholder="75"
+                  value={feeStr}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setFeeStr(v)
+                    setDraft((d) => ({ ...d, cleaningFeeCents: dollarsToCents(v) }))
+                  }}
                   className="w-full pl-6 pr-4 py-3 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
