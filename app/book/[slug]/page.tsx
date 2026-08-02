@@ -26,9 +26,10 @@ export default async function BookPage({ params }: Props) {
     .select(`
       id, slug, host_id, property_id,
       booking_listings (
-        title, tagline, description, location, photos, amenities,
+        id, title, tagline, description, location, photos, amenities,
         max_guests, bedrooms, bathrooms,
-        nightly_rate_cents, cleaning_fee_cents, min_nights, house_rules
+        nightly_rate_cents, cleaning_fee_cents, min_nights, house_rules,
+        weekend_multiplier, min_price_cents
       )
     `)
     .eq('slug', params.slug)
@@ -38,6 +39,7 @@ export default async function BookPage({ params }: Props) {
   if (!site) notFound()
 
   const listings = site.booking_listings as Array<{
+    id: string
     title: string
     tagline: string | null
     description: string
@@ -51,9 +53,17 @@ export default async function BookPage({ params }: Props) {
     cleaning_fee_cents: number
     min_nights: number
     house_rules: string | null
+    weekend_multiplier: number | null
+    min_price_cents: number | null
   }>
   const listing = listings?.[0]
   if (!listing) notFound()
+
+  // Seasonal / dynamic pricing rules for the booking form estimate
+  const { data: seasonalRates } = await supabase
+    .from('booking_seasonal_rates')
+    .select('start_date, end_date, nightly_rate_cents')
+    .eq('listing_id', listing.id)
 
   // Blocked dates from calendar events linked to this property
   let blockedRanges: { start: string; end: string }[] = []
@@ -204,6 +214,9 @@ export default async function BookPage({ params }: Props) {
               minNights={listing.min_nights}
               maxGuests={listing.max_guests}
               blockedRanges={blockedRanges}
+              weekendMultiplier={listing.weekend_multiplier ?? 1}
+              minPriceCents={listing.min_price_cents}
+              seasonalRates={seasonalRates ?? []}
             />
           </div>
         </div>

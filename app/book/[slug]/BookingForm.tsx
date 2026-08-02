@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { quoteStay, type SeasonalRate } from '@/lib/pricing'
 
 interface BlockedRange {
   start: string
@@ -16,6 +17,9 @@ interface Props {
   minNights: number
   maxGuests: number
   blockedRanges: BlockedRange[]
+  weekendMultiplier?: number
+  minPriceCents?: number | null
+  seasonalRates?: SeasonalRate[]
 }
 
 function formatCents(cents: number) {
@@ -35,6 +39,9 @@ export default function BookingForm({
   minNights,
   maxGuests,
   blockedRanges,
+  weekendMultiplier = 1,
+  minPriceCents = null,
+  seasonalRates = [],
 }: Props) {
   const router = useRouter()
   const [checkIn, setCheckIn] = useState('')
@@ -48,15 +55,29 @@ export default function BookingForm({
 
   const today = new Date().toISOString().split('T')[0]
 
-  const nights = useMemo(() => {
-    if (!checkIn || !checkOut) return 0
-    const diff =
-      (toDateObj(checkOut).getTime() - toDateObj(checkIn).getTime()) / (1000 * 60 * 60 * 24)
-    return Math.max(0, Math.round(diff))
-  }, [checkIn, checkOut])
+  const quote = useMemo(() => {
+    if (!checkIn || !checkOut || checkOut <= checkIn) return null
+    return quoteStay(
+      {
+        baseCents: nightlyRateCents,
+        weekendMultiplier,
+        minPriceCents,
+        cleaningFeeCents,
+        seasonalRates,
+      },
+      checkIn,
+      checkOut
+    )
+  }, [checkIn, checkOut, nightlyRateCents, weekendMultiplier, minPriceCents, cleaningFeeCents, seasonalRates])
 
-  const subtotal = nights * nightlyRateCents
-  const total = subtotal + (nights > 0 ? cleaningFeeCents : 0)
+  const nights = quote?.nights ?? 0
+  const subtotal = quote?.nightsSubtotalCents ?? 0
+  const total = quote?.totalCents ?? 0
+  // True when nightly prices vary across the stay (weekend/seasonal)
+  const priceVaries = quote
+    ? new Set(quote.perNight.map((n) => n.cents)).size > 1
+    : false
+  const avgNightly = quote?.avgNightlyCents ?? nightlyRateCents
 
   function isDateBlocked(dateStr: string): boolean {
     if (!dateStr) return false
@@ -208,10 +229,17 @@ export default function BookingForm({
           <div className="space-y-2 text-sm border-t pt-4">
             <div className="flex justify-between text-gray-600">
               <span>
-                {formatCents(nightlyRateCents)} × {nights} night{nights !== 1 ? 's' : ''}
+                {priceVaries ? (
+                  <>~{formatCents(avgNightly)}/night × {nights} night{nights !== 1 ? 's' : ''}</>
+                ) : (
+                  <>{formatCents(avgNightly)} × {nights} night{nights !== 1 ? 's' : ''}</>
+                )}
               </span>
               <span>{formatCents(subtotal)}</span>
             </div>
+            {priceVaries && (
+              <p className="text-xs text-gray-400">Nightly rate varies by date (weekend/seasonal pricing).</p>
+            )}
             {cleaningFeeCents > 0 && (
               <div className="flex justify-between text-gray-600">
                 <span>Cleaning fee</span>

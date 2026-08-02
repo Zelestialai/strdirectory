@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Save, AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { SeasonalRates } from '@/components/SeasonalRates'
 
 const COMMON_AMENITIES = [
   'WiFi', 'Free parking', 'Air conditioning', 'Heating', 'Kitchen',
@@ -43,6 +44,8 @@ export default function EditBookingSitePage({ params }: Props) {
   const [cleaningFee, setCleaningFee] = useState('')
   const [minNights, setMinNights] = useState(1)
   const [houseRules, setHouseRules] = useState('')
+  const [weekendMultiplier, setWeekendMultiplier] = useState('1')
+  const [minPrice, setMinPrice] = useState('')
 
   useEffect(() => {
     async function fetchSite() {
@@ -66,6 +69,8 @@ export default function EditBookingSitePage({ params }: Props) {
         setCleaningFee(l.cleaning_fee_cents ? (l.cleaning_fee_cents / 100).toFixed(2) : '')
         setMinNights(l.min_nights || 1)
         setHouseRules(l.house_rules || '')
+        setWeekendMultiplier(l.weekend_multiplier ? String(l.weekend_multiplier) : '1')
+        setMinPrice(l.min_price_cents ? (l.min_price_cents / 100).toFixed(0) : '')
       }
       setLoading(false)
     }
@@ -116,6 +121,8 @@ export default function EditBookingSitePage({ params }: Props) {
           cleaning_fee_cents: Math.round(parseFloat(cleaningFee || '0') * 100),
           min_nights: minNights,
           house_rules: houseRules || null,
+          weekend_multiplier: Math.max(1, parseFloat(weekendMultiplier || '1')),
+          min_price_cents: minPrice ? Math.round(parseFloat(minPrice) * 100) : null,
         },
       }),
     })
@@ -244,6 +251,29 @@ export default function EditBookingSitePage({ params }: Props) {
             <label className="block text-xs font-medium text-gray-600 mb-1">Min nights</label>
             <input type="number" min="1" value={minNights} onChange={(e) => setMinNights(Number(e.target.value))} className={inputCls} />
           </div>
+        </div>
+
+        {/* Dynamic pricing rules */}
+        <div className="rounded-xl border border-gray-200 p-4 space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-800">Dynamic pricing</h3>
+            <p className="text-xs text-gray-500">Automatically adjust nightly rates. Leave defaults for flat pricing.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Weekend multiplier (Fri/Sat)</label>
+              <input type="number" min="1" max="5" step="0.05" value={weekendMultiplier}
+                onChange={(e) => setWeekendMultiplier(e.target.value)} placeholder="1.25" className={inputCls} />
+              <p className="text-[11px] text-gray-400 mt-1">e.g. 1.25 = weekends 25% higher</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Minimum price floor ($)</label>
+              <input type="number" min="0" step="1" value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)} placeholder="optional" className={inputCls} />
+              <p className="text-[11px] text-gray-400 mt-1">Never quote a night below this</p>
+            </div>
+          </div>
+          <SeasonalRates siteId={params.siteId} />
         </div>
 
         {/* Amenities */}

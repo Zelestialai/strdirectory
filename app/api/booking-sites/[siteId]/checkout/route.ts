@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
+import { quoteStay, type SeasonalRate } from '@/lib/pricing'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -31,14 +32,23 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const listings = site.booking_listings as Array<{
+    id: string
     title: string
     nightly_rate_cents: number
     cleaning_fee_cents: number
     min_nights: number
     max_guests: number
+    weekend_multiplier?: number
+    min_price_cents?: number | null
   }>
   const listing = listings?.[0]
   if (!listing) return NextResponse.json({ error: 'No listing found for this site' }, { status: 400 })
+
+  // Seasonal / dynamic pricing rules for this listing
+  const { data: seasonalRates } = await supabase
+    .from('booking_seasonal_rates')
+    .select('start_date, end_date, nightly_rate_cents')
+    .eq('listing_id', listing.id)
 
   // Validate dates
   const checkInDate = new Date(check_in)
@@ -70,9 +80,21 @@ export async function POST(request: NextRequest, { params }: Params) {
     )
   }
 
-  const subtotal = listing.nightly_rate_cents * nights
-  const cleaningFee = listing.cleaning_fee_cents
-  const total = subtotal + cleaningFee
+  // Dynamic pricing: price each night (base → seasonal → weekend → floor)
+  const quote = quoteStay(
+    {
+      baseCents: listing.nightly_rate_cents,
+      weekendMultiplier: listing.weekend_multiplier ?? 1,
+      minPriceCents: listing.min_price_cents ?? null,
+      cleaningFeeCents: listing.cleaning_fee_cents,
+      seasonalRates: (seasonalRates as SeasonalRate[]) ?? [],
+    },
+    check_in,
+    check_out
+  )
+  const subtotal = quote.nightsSubtotalCents
+  const cleaningFee = quote.cleaningFeeCents
+  const total = quote.totalCents
 
   if (total < 50) {
     return NextResponse.json({ error: 'Booking total is too low to process' }, { status: 400 })
