@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { CalendarDays, Home, ArrowLeft, Sparkles } from "lucide-react";
+import { CalendarSubscribe } from "@/components/CalendarSubscribe";
 
 export const metadata = { title: "Calendar | STRVend Host" };
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://strvend.com";
 
 function formatDate(dateStr: string) {
   // dateStr is YYYY-MM-DD
@@ -56,6 +59,12 @@ export default async function CalendarPage() {
     .select("id, name, last_synced_at")
     .eq("host_id", user!.id);
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("ical_token")
+    .eq("id", user!.id)
+    .maybeSingle();
+
   const hasProperties = (properties?.length ?? 0) > 0;
   const hasEvents = (events?.length ?? 0) > 0;
 
@@ -77,6 +86,15 @@ export default async function CalendarPage() {
           Manage Properties
         </Link>
       </div>
+
+      {/* Subscribe feed */}
+      {profile?.ical_token && (
+        <CalendarSubscribe
+          url={`${SITE_URL}/api/ical/reservations/${profile.ical_token}.ics`}
+          title="Subscribe to your reservations & turnovers"
+          description="Add this link to Google, Apple, or Outlook Calendar to see reservations and cleaning turnovers automatically."
+        />
+      )}
 
       {/* No properties yet */}
       {!hasProperties && (

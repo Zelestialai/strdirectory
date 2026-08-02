@@ -1,13 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CleanerJobs } from "@/components/turnover/CleanerJobs";
+import { CalendarSubscribe } from "@/components/CalendarSubscribe";
 
 export const metadata = { title: "Turnover Jobs" };
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://strvend.com";
 
 export default async function CleanerJobsPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/jobs");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("ical_token")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const { data: vendor } = await supabase
     .from("vendors")
@@ -57,11 +66,20 @@ export default async function CleanerJobsPage() {
   for (const b of bids ?? []) myBids[b.task_id] = b.price_cents;
 
   return (
-    <CleanerJobs
-      assigned={(assigned as any) ?? []}
-      scheduled={(scheduled as any) ?? []}
-      open={(open as any) ?? []}
-      myBids={myBids}
-    />
+    <div className="space-y-6">
+      <CleanerJobs
+        assigned={(assigned as any) ?? []}
+        scheduled={(scheduled as any) ?? []}
+        open={(open as any) ?? []}
+        myBids={myBids}
+      />
+      {profile?.ical_token && (
+        <CalendarSubscribe
+          url={`${SITE_URL}/api/ical/turnovers/${profile.ical_token}.ics`}
+          title="Sync your job schedule"
+          description="Add this link to Google, Apple, or Outlook Calendar to see your accepted turnover jobs automatically."
+        />
+      )}
+    </div>
   );
 }
