@@ -194,15 +194,13 @@ export function Navbar({
   return (
     <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        {/* Logo + market switcher */}
-        <div className="flex items-center gap-3 shrink-0">
-          <Link href="/" className="flex items-center gap-2 text-brand-700 font-bold text-lg">
+        {/* Logo + market switcher (switcher shown on all breakpoints) */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <Link href="/" className="flex items-center gap-2 text-brand-700 font-bold text-lg shrink-0">
             <Building2 className="h-5 w-5" />
-            StrVend
+            <span className="hidden sm:inline">StrVend</span>
           </Link>
-          <div className="hidden sm:block">
-            <MarketSwitcher current={currentMarket} markets={markets} />
-          </div>
+          <MarketSwitcher current={currentMarket} markets={markets} />
         </div>
 
         {/* Desktop nav */}
@@ -315,18 +313,9 @@ export function Navbar({
           <Link href="/blog" className="block py-2 font-medium text-gray-700 hover:text-brand-700" onClick={() => setMenuOpen(false)}>
             Blog
           </Link>
-          <p className="pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Markets</p>
-          {ALL_MARKETS.map((m) => (
-            <Link
-              key={m.slug}
-              href={`/markets/${m.slug}`}
-              className="flex items-center justify-between py-1.5 text-gray-600 hover:text-brand-700"
-              onClick={() => setMenuOpen(false)}
-            >
-              <span>{m.name}</span>
-              <span className="text-xs text-gray-400">{m.state}</span>
-            </Link>
-          ))}
+          <Link href="/markets" className="block py-2 font-medium text-gray-700 hover:text-brand-700" onClick={() => setMenuOpen(false)}>
+            Browse all markets
+          </Link>
           <p className="pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Categories</p>
           {ALL_CATEGORIES.map((cat) => (
             <Link
