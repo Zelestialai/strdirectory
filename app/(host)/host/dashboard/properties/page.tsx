@@ -5,6 +5,7 @@ import { Plus, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { PropertyCard } from "@/components/PropertyCard";
 import { AddPropertyModal } from "@/components/AddPropertyModal";
+import { OwnerRezConnect } from "@/components/OwnerRezConnect";
 
 interface Property {
   id: string;
@@ -67,6 +68,9 @@ export default function PropertiesPage() {
           <Plus className="h-4 w-4" /> Add Property
         </button>
       </div>
+
+      {/* OwnerRez auto-sync */}
+      <OwnerRezConnect />
 
       {/* Property list */}
       {loading ? (
