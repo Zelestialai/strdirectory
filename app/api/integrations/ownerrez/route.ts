@@ -10,12 +10,15 @@ export async function GET() {
 
   const { data } = await supabase
     .from("host_integrations")
-    .select("status, api_username, last_synced_at, last_error")
+    .select("status, auth_method, api_username, last_synced_at, last_error")
     .eq("host_id", user.id)
     .eq("provider", "ownerrez")
     .maybeSingle();
 
-  return NextResponse.json({ integration: data ?? null });
+  return NextResponse.json({
+    integration: data ?? null,
+    oauthAvailable: !!(process.env.OWNERREZ_CLIENT_ID && process.env.OWNERREZ_CLIENT_SECRET),
+  });
 }
 
 // POST — connect (or update) OwnerRez. Body: { username, token }

@@ -14,6 +14,7 @@ interface Integration {
 export function OwnerRezConnect() {
   const router = useRouter();
   const [integration, setIntegration] = useState<Integration | null>(null);
+  const [oauthAvailable, setOauthAvailable] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
@@ -28,6 +29,7 @@ export function OwnerRezConnect() {
       if (res.ok) {
         const data = await res.json();
         setIntegration(data.integration);
+        setOauthAvailable(!!data.oauthAvailable);
       }
     } finally {
       setLoaded(true);
@@ -153,6 +155,16 @@ export function OwnerRezConnect() {
                 <X className="h-3.5 w-3.5" /> Disconnect
               </button>
             </>
+          ) : oauthAvailable ? (
+            <div className="flex items-center gap-2">
+              <a href="/api/integrations/ownerrez/oauth/start"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+                <Plug className="h-4 w-4" /> Connect with OwnerRez
+              </a>
+              <button onClick={() => setOpen((o) => !o)} className="text-xs text-gray-500 hover:text-gray-700">
+                Use API token
+              </button>
+            </div>
           ) : (
             <button onClick={() => setOpen((o) => !o)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">

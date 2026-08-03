@@ -2,22 +2,33 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createTurnoverTask } from "@/lib/turnover";
 
 const BASE = "https://api.ownerrez.com/v2";
+const AUTHORIZE_URL =
+  process.env.OWNERREZ_AUTHORIZE_URL || "https://app.ownerrez.com/oauth/authorize";
+const TOKEN_URL =
+  process.env.OWNERREZ_TOKEN_URL || "https://api.ownerrez.com/oauth/access_token";
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export type OwnerRezAuth =
+  | { type: "basic"; username: string; token: string }
+  | { type: "bearer"; accessToken: string };
+
+// Back-compat alias for the Personal Access Token path
 export interface OwnerRezCreds {
   username: string;
   token: string;
 }
 
-function authHeader({ username, token }: OwnerRezCreds) {
-  const basic = Buffer.from(`${username}:${token}`).toString("base64");
+function authHeader(auth: OwnerRezAuth): string {
+  if (auth.type === "bearer") return `Bearer ${auth.accessToken}`;
+  const basic = Buffer.from(`${auth.username}:${auth.token}`).toString("base64");
   return `Basic ${basic}`;
 }
 
 /** Low-level GET against the OwnerRez API. Throws on non-2xx. */
-async function orGet(path: string, creds: OwnerRezCreds): Promise<any> {
+async function orGet(path: string, auth: OwnerRezAuth): Promise<any> {
   const res = await fetch(`${BASE}${path}`, {
     headers: {
-      Authorization: authHeader(creds),
+      Authorization: authHeader(auth),
       Accept: "application/json",
       "User-Agent": "STRVend/1.0 (+https://strvend.com)",
     },
@@ -31,12 +42,12 @@ async function orGet(path: string, creds: OwnerRezCreds): Promise<any> {
 }
 
 /** Follow OwnerRez paged responses ({ items, nextPageUrl }). Capped for safety. */
-async function orGetAll(path: string, creds: OwnerRezCreds, cap = 10): Promise<any[]> {
+async function orGetAll(path: string, auth: OwnerRezAuth, cap = 10): Promise<any[]> {
   const items: any[] = [];
   let next: string | null = path;
   let pages = 0;
   while (next && pages < cap) {
-    const page: any = await orGet(next.startsWith("http") ? next.replace(BASE, "") : next, creds);
+    const page: any = await orGet(next.startsWith("http") ? next.replace(BASE, "") : next, auth);
     if (Array.isArray(page)) {
       items.push(...page);
       break;
@@ -48,14 +59,72 @@ async function orGetAll(path: string, creds: OwnerRezCreds, cap = 10): Promise<a
   return items;
 }
 
-/** Validate credentials by making a cheap authenticated call. */
+/** Validate Personal Access Token credentials by making a cheap authenticated call. */
 export async function verifyOwnerRez(creds: OwnerRezCreds): Promise<{ ok: boolean; error?: string }> {
   try {
-    await orGet("/properties?limit=1", creds);
+    await orGet("/properties?limit=1", { type: "basic", ...creds });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Connection failed" };
   }
+}
+
+// ── OAuth (Authorization Code Grant) ────────────────────────────────────────────
+export function ownerRezOAuthConfigured(): boolean {
+  return !!(process.env.OWNERREZ_CLIENT_ID && process.env.OWNERREZ_CLIENT_SECRET);
+}
+
+export function buildOwnerRezAuthorizeUrl(redirectUri: string, state: string): string {
+  const params = new URLSearchParams({
+    client_id: process.env.OWNERREZ_CLIENT_ID!,
+    response_type: "code",
+    redirect_uri: redirectUri,
+    state,
+  });
+  if (process.env.OWNERREZ_SCOPES) params.set("scope", process.env.OWNERREZ_SCOPES);
+  return `${AUTHORIZE_URL}?${params.toString()}`;
+}
+
+interface TokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number; // seconds
+  token_type?: string;
+}
+
+async function tokenRequest(body: Record<string, string>): Promise<TokenResponse> {
+  const basic = Buffer.from(
+    `${process.env.OWNERREZ_CLIENT_ID}:${process.env.OWNERREZ_CLIENT_SECRET}`
+  ).toString("base64");
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams(body).toString(),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`OwnerRez token → HTTP ${res.status} ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+/** Exchange an authorization code for tokens (used by the OAuth callback). */
+export function exchangeOwnerRezCode(code: string, redirectUri: string) {
+  return tokenRequest({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: redirectUri,
+  });
+}
+
+/** Refresh an expired OAuth access token. */
+function refreshOwnerRezToken(refreshToken: string) {
+  return tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
 }
 
 /** Best-effort field readers (OwnerRez field names can vary by endpoint version). */
@@ -85,24 +154,62 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
   const db = supabaseAdmin;
   const { data: integration } = await db
     .from("host_integrations")
-    .select("id, api_username, api_token, status")
+    .select(
+      "id, auth_method, api_username, api_token, access_token, refresh_token, token_expires_at, status"
+    )
     .eq("host_id", hostId)
     .eq("provider", "ownerrez")
     .maybeSingle();
 
-  if (!integration || !integration.api_username || !integration.api_token) {
+  if (!integration) {
     return { ok: false, properties: 0, reservations: 0, turnovers: 0, error: "Not connected" };
   }
-  const creds: OwnerRezCreds = {
-    username: integration.api_username,
-    token: integration.api_token,
-  };
+
+  // Build auth for this request (refresh the OAuth token if it's expiring)
+  let auth: OwnerRezAuth;
+  try {
+    if (integration.auth_method === "oauth") {
+      let accessToken = integration.access_token as string | null;
+      const expMs = integration.token_expires_at
+        ? new Date(integration.token_expires_at).getTime()
+        : 0;
+      const nearExpiry = !accessToken || expMs - Date.now() < 60_000;
+      if (nearExpiry && integration.refresh_token) {
+        const t = await refreshOwnerRezToken(integration.refresh_token);
+        accessToken = t.access_token;
+        await db
+          .from("host_integrations")
+          .update({
+            access_token: t.access_token,
+            refresh_token: t.refresh_token ?? integration.refresh_token,
+            token_expires_at: t.expires_in
+              ? new Date(Date.now() + t.expires_in * 1000).toISOString()
+              : null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", integration.id);
+      }
+      if (!accessToken) {
+        return { ok: false, properties: 0, reservations: 0, turnovers: 0, error: "OAuth token missing" };
+      }
+      auth = { type: "bearer", accessToken };
+    } else {
+      if (!integration.api_username || !integration.api_token) {
+        return { ok: false, properties: 0, reservations: 0, turnovers: 0, error: "Not connected" };
+      }
+      auth = { type: "basic", username: integration.api_username, token: integration.api_token };
+    }
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "Auth failed";
+    await db.from("host_integrations").update({ status: "error", last_error: error }).eq("id", integration.id);
+    return { ok: false, properties: 0, reservations: 0, turnovers: 0, error };
+  }
 
   const today = new Date().toISOString().slice(0, 10);
 
   try {
     // 1. Properties → upsert STRVend properties keyed by external_id
-    const orProps = await orGetAll("/properties", creds);
+    const orProps = await orGetAll("/properties", auth);
     const propMap = new Map<string, string>(); // ownerrez id -> strvend property id
 
     // preferred market for open-job discovery
@@ -149,7 +256,7 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
     // 2. Bookings (upcoming, active) → calendar_events + turnovers
     const bookings = await orGetAll(
       `/bookings?since_utc=${today}T00:00:00Z&status=active`,
-      creds
+      auth
     );
 
     let reservations = 0;
