@@ -13,6 +13,7 @@ interface Property {
   address: string | null;
   ical_url: string | null;
   last_synced_at: string | null;
+  external_source?: string | null;
 }
 
 export default function PropertiesPage() {

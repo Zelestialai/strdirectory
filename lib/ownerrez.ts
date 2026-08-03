@@ -140,6 +140,47 @@ function toDateStr(v: any): string | null {
 }
 
 /**
+ * OwnerRez returns a property address as an object
+ * ({ street1, city, state, postal_code, country, ... }) — not a string.
+ * Build a clean single-line address, tolerant of missing fields and of the
+ * value already being a plain string. Returns null when there's nothing usable.
+ */
+function formatOrAddress(raw: any): string | null {
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    const s = raw.trim();
+    // Guard against a JSON blob accidentally stored as a string
+    if (!s || s.startsWith("{") || s.startsWith("[")) return s.startsWith("{") || s.startsWith("[") ? null : s || null;
+    return s;
+  }
+  if (typeof raw !== "object") return null;
+
+  const street = pick<string>(raw, ["street1", "street", "line1", "address1"]);
+  const street2 = pick<string>(raw, ["street2", "line2", "address2"]);
+  const city = pick<string>(raw, ["city", "town"]);
+  const state = pick<string>(raw, ["state", "province", "region"]);
+  const postal = pick<string>(raw, ["postal_code", "postalCode", "zip", "zip_code"]);
+  let country = pick<string>(raw, ["country", "country_code", "countryCode"]);
+  // Drop noisy default country so US addresses read cleanly
+  if (country && /^(us|usa|united states)$/i.test(country.trim())) country = undefined;
+
+  const cityLine = [city, state].filter(Boolean).join(", ");
+  const parts = [street, street2, cityLine, postal, country].filter(Boolean);
+  const out = parts.join(", ").replace(/\s+,/g, ",").trim();
+  return out || null;
+}
+
+/** Extract a formatted address from an OwnerRez property (object, array, or string). */
+function extractOrAddress(p: any): string | null {
+  let a = pick<any>(p, ["address"]);
+  if (a == null && Array.isArray(p?.addresses)) {
+    a = p.addresses.find((x: any) => x?.is_default) ?? p.addresses[0];
+  }
+  if (a == null) a = pick<any>(p, ["address1", "street"]);
+  return formatOrAddress(a);
+}
+
+/**
  * Sync one host's OwnerRez account: properties → STRVend properties,
  * bookings → calendar_events → auto-generated turnover tasks.
  * Returns a summary; never throws (records errors on the integration row).
@@ -223,7 +264,7 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
     for (const p of orProps) {
       const extId = String(pick(p, ["id", "propertyId"]));
       const name = pick<string>(p, ["name", "displayName", "propertyName"]) ?? `Property ${extId}`;
-      const address = pick<string>(p, ["address1", "address", "street"]) ?? null;
+      const address = extractOrAddress(p);
 
       // Does a mapped property already exist?
       const { data: existing } = await db

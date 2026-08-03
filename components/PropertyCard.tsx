@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Home, RefreshCw, Pencil, Trash2, Clock, Link2 } from "lucide-react";
+import { Home, RefreshCw, Pencil, Trash2, Clock, Link2, Plug } from "lucide-react";
 
 interface Property {
   id: string;
@@ -9,6 +9,7 @@ interface Property {
   address: string | null;
   ical_url: string | null;
   last_synced_at: string | null;
+  external_source?: string | null;
 }
 
 interface Props {
@@ -57,6 +58,8 @@ export function PropertyCard({ property, onEdit, onDelete, onSynced }: Props) {
     onDelete(property.id);
   }
 
+  const isOwnerRez = property.external_source === "ownerrez";
+
   const lastSynced = property.last_synced_at
     ? new Date(property.last_synced_at).toLocaleString(undefined, {
         month: "short",
@@ -75,7 +78,14 @@ export function PropertyCard({ property, onEdit, onDelete, onSynced }: Props) {
             <Home className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="font-semibold text-gray-900 truncate">{property.name}</p>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <p className="font-semibold text-gray-900 truncate">{property.name}</p>
+              {isOwnerRez && (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 px-1.5 py-0.5 text-[10px] font-medium">
+                  <Plug className="h-2.5 w-2.5" /> OwnerRez
+                </span>
+              )}
+            </div>
             {property.address && (
               <p className="text-xs text-gray-500 truncate">{property.address}</p>
             )}
@@ -100,8 +110,13 @@ export function PropertyCard({ property, onEdit, onDelete, onSynced }: Props) {
         </div>
       </div>
 
-      {/* iCal status */}
-      {property.ical_url ? (
+      {/* Sync source status */}
+      {isOwnerRez ? (
+        <div className="flex items-center gap-2 text-xs text-brand-700 bg-brand-50 rounded-lg px-3 py-2">
+          <Plug className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+          <span>Reservations sync automatically from OwnerRez — updated daily.</span>
+        </div>
+      ) : property.ical_url ? (
         <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
           <Link2 className="h-3.5 w-3.5 shrink-0 text-brand-400" />
           <span className="truncate font-mono">{property.ical_url}</span>
@@ -112,27 +127,37 @@ export function PropertyCard({ property, onEdit, onDelete, onSynced }: Props) {
         </p>
       )}
 
-      {/* Footer: sync */}
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          {lastSynced ? (
-            <>
-              <Clock className="h-3.5 w-3.5" />
-              <span>Last synced {lastSynced}</span>
-            </>
-          ) : (
-            <span className="italic">Never synced</span>
-          )}
+      {/* Footer: sync (iCal properties only; OwnerRez syncs at the account level) */}
+      {!isOwnerRez && (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            {lastSynced ? (
+              <>
+                <Clock className="h-3.5 w-3.5" />
+                <span>Last synced {lastSynced}</span>
+              </>
+            ) : (
+              <span className="italic">Never synced</span>
+            )}
+          </div>
+          <button
+            onClick={handleSync}
+            disabled={syncing || !property.ical_url}
+            className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing…" : "Sync Now"}
+          </button>
         </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing || !property.ical_url}
-          className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Syncing…" : "Sync Now"}
-        </button>
-      </div>
+      )}
+
+      {/* Last synced note for OwnerRez properties */}
+      {isOwnerRez && lastSynced && (
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 pt-1">
+          <Clock className="h-3.5 w-3.5" />
+          <span>Last synced {lastSynced}</span>
+        </div>
+      )}
 
       {/* Sync result toast */}
       {syncResult && (
