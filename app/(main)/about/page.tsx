@@ -38,7 +38,7 @@ export default function AboutPage() {
           </p>
           <p>
             STRVend was built to solve exactly that. We&apos;ve indexed thousands of service providers
-            across 106 STR markets — from Nashville to Napa Valley — so you can find a vetted local
+            across 108 STR markets — from Nashville to Napa Valley — so you can find a vetted local
             pro in minutes, not hours.
           </p>
           <p>
@@ -91,7 +91,7 @@ export default function AboutPage() {
       <section className="bg-brand-700 text-white py-14 text-center">
         <div className="mx-auto max-w-xl px-4 sm:px-6">
           <h2 className="text-2xl font-bold mb-4">Ready to find your next vendor?</h2>
-          <p className="text-brand-200 mb-8">Browse 2,400+ STR service providers across 106 markets.</p>
+          <p className="text-brand-200 mb-8">Browse 2,400+ STR service providers across 108 markets.</p>
           <Link
             href="/vendors"
             className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 transition"

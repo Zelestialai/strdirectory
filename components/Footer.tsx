@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const MARKETS_COL1 = [
+const FEATURED_MARKETS = [
   { name: "Nashville",       slug: "nashville" },
   { name: "Miami",           slug: "miami" },
   { name: "Orlando",         slug: "orlando" },
@@ -11,9 +11,7 @@ const MARKETS_COL1 = [
   { name: "Los Angeles",     slug: "los-angeles" },
   { name: "San Francisco",   slug: "san-francisco" },
   { name: "Seattle",         slug: "seattle" },
-];
 
-const MARKETS_COL2 = [
   { name: "Denver",          slug: "denver" },
   { name: "New Orleans",     slug: "new-orleans" },
   { name: "San Diego",       slug: "san-diego" },
@@ -24,9 +22,7 @@ const MARKETS_COL2 = [
   { name: "Atlanta",         slug: "atlanta" },
   { name: "Dallas",          slug: "dallas" },
   { name: "Houston",         slug: "houston" },
-];
 
-const MARKETS_COL3 = [
   { name: "Asheville",       slug: "asheville" },
   { name: "Outer Banks",     slug: "outer-banks" },
   { name: "Key West",        slug: "key-west" },
@@ -37,7 +33,7 @@ const MARKETS_COL3 = [
   { name: "Cape Cod",        slug: "cape-cod" },
   { name: "Hamptons",        slug: "hamptons" },
   { name: "Palm Springs",    slug: "palm-springs" },
-];
+].sort((a, b) => a.name.localeCompare(b.name));
 
 const CATEGORIES_COL1 = [
   { name: "Cleaning & Turnover",        slug: "cleaning-turnover" },
@@ -76,7 +72,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-brand-300 leading-relaxed">
-              Connecting STR hosts with trusted local service providers across 106 markets.
+              Connecting STR hosts with trusted local service providers across 108 markets.
             </p>
           </div>
 
@@ -87,14 +83,14 @@ export function Footer() {
             </h4>
             <div className="grid grid-cols-2 gap-x-4">
               <ul className="space-y-2 text-sm text-brand-200">
-                {MARKETS_COL1.map((m) => (
+                {FEATURED_MARKETS.slice(0, 10).map((m) => (
                   <li key={m.slug}>
                     <Link href={`/markets/${m.slug}`} className="hover:text-white transition">{m.name}</Link>
                   </li>
                 ))}
               </ul>
               <ul className="space-y-2 text-sm text-brand-200">
-                {MARKETS_COL2.map((m) => (
+                {FEATURED_MARKETS.slice(10, 20).map((m) => (
                   <li key={m.slug}>
                     <Link href={`/markets/${m.slug}`} className="hover:text-white transition">{m.name}</Link>
                   </li>
@@ -107,14 +103,14 @@ export function Footer() {
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-brand-400 invisible mb-3">More</h4>
             <ul className="space-y-2 text-sm text-brand-200">
-              {MARKETS_COL3.map((m) => (
+              {FEATURED_MARKETS.slice(20, 30).map((m) => (
                 <li key={m.slug}>
                   <Link href={`/markets/${m.slug}`} className="hover:text-white transition">{m.name}</Link>
                 </li>
               ))}
               <li className="pt-1">
                 <Link href="/markets" className="text-coral-400 font-medium hover:text-coral-300 transition text-xs">
-                  View all 106 markets →
+                  View all 108 markets →
                 </Link>
               </li>
             </ul>
@@ -156,16 +152,27 @@ export function Footer() {
               <li><Link href="/about" className="hover:text-white transition">About</Link></li>
               <li><Link href="/contact" className="hover:text-white transition">Contact</Link></li>
             </ul>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-brand-400 mt-6 mb-3">Legal</h4>
+            <ul className="space-y-2 text-sm text-brand-200">
+              <li><Link href="/terms" className="hover:text-white transition">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
+              <li><Link href="/cookie-policy" className="hover:text-white transition">Cookie Policy</Link></li>
+              <li><Link href="/refund-policy" className="hover:text-white transition">Refund Policy</Link></li>
+              <li><Link href="/vendor-agreement" className="hover:text-white transition">Vendor Agreement</Link></li>
+            </ul>
           </div>
         </div>
 
-        <div className="mt-12 border-t border-brand-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="mt-12 border-t border-brand-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-brand-500">
             © {new Date().getFullYear()} STRVend. All rights reserved.
           </p>
-          <p className="text-xs text-brand-500">
-            The vendor directory built for short-term rental hosts.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <Link href="/privacy" className="text-xs text-brand-500 hover:text-brand-300 transition">Privacy</Link>
+            <Link href="/terms" className="text-xs text-brand-500 hover:text-brand-300 transition">Terms</Link>
+            <Link href="/cookie-policy" className="text-xs text-brand-500 hover:text-brand-300 transition">Cookies</Link>
+            <Link href="/refund-policy" className="text-xs text-brand-500 hover:text-brand-300 transition">Refunds</Link>
+          </div>
         </div>
       </div>
     </footer>

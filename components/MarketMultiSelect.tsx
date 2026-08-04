@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, X } from "lucide-react";
 
-export const MARKETS = [
+const MARKETS_RAW = [
   { name: "Nashville", slug: "nashville", state: "TN" },
   { name: "Miami", slug: "miami", state: "FL" },
   { name: "Orlando", slug: "orlando", state: "FL" },
@@ -109,12 +109,19 @@ export const MARKETS = [
   { name: "New Braunfels", slug: "new-braunfels", state: "TX" },
   { name: "Coeur d'Alene", slug: "coeur-dalene", state: "ID" },
   { name: "Lake Geneva", slug: "lake-geneva", state: "WI" },
+  { name: "Yosemite (Oakhurst / Mariposa)", slug: "yosemite", state: "CA" },
+  { name: "Shenandoah", slug: "shenandoah", state: "VA" },
 ];
+
+// Always presented alphabetically by name so it's easy to scan and select.
+export const MARKETS = [...MARKETS_RAW].sort((a, b) =>
+  a.name.localeCompare(b.name)
+);
 
 export function MarketMultiSelect({
   selected,
   onChange,
-  placeholder = "Search 106 markets…",
+  placeholder = "Search 108 markets…",
 }: {
   selected: string[];
   onChange: (v: string[]) => void;

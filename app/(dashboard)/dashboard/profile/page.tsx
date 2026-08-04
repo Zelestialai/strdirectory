@@ -261,7 +261,7 @@ export default function EditProfilePage() {
           <MarketMultiSelect
             selected={markets}
             onChange={setMarkets}
-            placeholder="Search 106 STR markets…"
+            placeholder="Search 108 STR markets…"
           />
           {markets.length === 0 && (
             <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
