@@ -16,5 +16,5 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "qa-suite"]
+  "exclude": ["node_modules", "qa-suite", "capacitor.config.ts", "capacitor-shell", "ios", "android"]
 }

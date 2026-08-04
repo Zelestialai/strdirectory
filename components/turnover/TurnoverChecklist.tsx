@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isNativePlatform, takeNativePhoto } from "@/lib/native";
 
 const BUCKET = "vendor-images";
 
@@ -78,19 +79,20 @@ export function TurnoverChecklist({ taskId }: { taskId: string }) {
     }
   }
 
-  function pickPhoto(itemId: string) {
+  async function pickPhoto(itemId: string) {
+    // On the native app, use the OS camera/library; on web, use the file input.
+    if (await isNativePlatform()) {
+      const shot = await takeNativePhoto();
+      if (shot) { await uploadItemPhoto(itemId, shot.file); return; }
+      // fall through to file input if native capture was cancelled/unavailable
+    }
     setPhotoFor(itemId);
     fileRef.current?.click();
   }
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !photoFor) return;
-    const itemId = photoFor;
+  async function uploadItemPhoto(itemId: string, file: File) {
     if (!file.type.startsWith("image/")) { setError("Please choose an image."); return; }
     if (file.size > 5 * 1024 * 1024) { setError("Image must be under 5 MB."); return; }
-
     if (!vendorId) { setError("Only the assigned cleaner can add photos."); return; }
     setBusy(itemId);
     setError(null);
@@ -116,6 +118,13 @@ export function TurnoverChecklist({ taskId }: { taskId: string }) {
       setBusy(null);
       setPhotoFor(null);
     }
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !photoFor) return;
+    await uploadItemPhoto(photoFor, file);
   }
 
   async function removePhoto(itemId: string) {
