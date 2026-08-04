@@ -48,6 +48,26 @@ export async function PATCH(
     return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
+  // Require the full checklist to be completed before a turnover can be closed.
+  if (status === "completed") {
+    const { data: items } = await db
+      .from("turnover_checklist_items")
+      .select("is_done")
+      .eq("turnover_task_id", task.id);
+    const total = items?.length ?? 0;
+    const remaining = (items ?? []).filter((i) => !i.is_done).length;
+    if (total > 0 && remaining > 0) {
+      return NextResponse.json(
+        {
+          error: `Finish the cleaning checklist first — ${remaining} of ${total} item${total === 1 ? "" : "s"} still unchecked.`,
+          remaining,
+          total,
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   await db
     .from("turnover_tasks")
     .update({ status, updated_at: new Date().toISOString() })

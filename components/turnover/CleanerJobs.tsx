@@ -12,6 +12,7 @@ import {
   Gavel,
   Sparkles,
 } from "lucide-react";
+import { TurnoverChecklist } from "@/components/turnover/TurnoverChecklist";
 
 interface Task {
   id: string;
@@ -84,20 +85,6 @@ export function CleanerJobs({
       setBidFor(null);
       setBidPrice("");
       setBidMsg("");
-      router.refresh();
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function markDone(taskId: string) {
-    setBusy(taskId + "done");
-    try {
-      await fetch(`/api/turnovers/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "completed" }),
-      });
       router.refresh();
     } finally {
       setBusy(null);
@@ -210,12 +197,7 @@ export function CleanerJobs({
           {scheduled.map((t) => (
             <div key={t.id} className="card p-5">
               <JobHeader t={t} scheduled />
-              <div className="mt-3">
-                <button onClick={() => markDone(t.id)} disabled={busy === t.id + "done"}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                  {busy === t.id + "done" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Mark completed
-                </button>
-              </div>
+              <TurnoverChecklist taskId={t.id} />
             </div>
           ))}
         </List>

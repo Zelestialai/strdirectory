@@ -13,6 +13,7 @@ import {
   Home,
   Star,
 } from "lucide-react";
+import { TurnoverChecklist } from "@/components/turnover/TurnoverChecklist";
 
 interface Bid {
   id: string;
@@ -73,6 +74,7 @@ export function HostTurnovers({
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<Record<string, string>>({});
 
   // create form state
   const [title, setTitle] = useState("");
@@ -129,12 +131,18 @@ export function HostTurnovers({
 
   async function setStatus(taskId: string, status: "completed" | "cancelled") {
     setBusy(taskId + status);
+    setStatusError((p) => { const n = { ...p }; delete n[taskId]; return n; });
     try {
-      await fetch(`/api/turnovers/${taskId}`, {
+      const res = await fetch(`/api/turnovers/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setStatusError((p) => ({ ...p, [taskId]: data.error || "Couldn't update this turnover" }));
+        return;
+      }
       router.refresh();
     } finally {
       setBusy(null);
@@ -248,6 +256,17 @@ export function HostTurnovers({
                   </button>
                 </div>
               </div>
+
+              {statusError[t.id] && (
+                <p className="mt-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  {statusError[t.id]}
+                </p>
+              )}
+
+              {/* Cleaning checklist progress (read-only for the host) */}
+              {(t.status === "scheduled" || t.status === "assigned" || t.status === "completed") && (
+                <TurnoverChecklist taskId={t.id} />
+              )}
 
               {/* Bids on open tasks */}
               {t.status === "open" && (

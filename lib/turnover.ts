@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications";
 import { resend, FROM_EMAIL, SITE_URL } from "@/lib/email";
+import { snapshotChecklistToTurnover } from "@/lib/checklist";
 
 const CLEANING_SLUG = "cleaning-turnover";
 
@@ -81,6 +82,11 @@ export async function createTurnoverTask(input: CreateTurnoverInput) {
     console.error("createTurnoverTask failed:", error);
     return null;
   }
+
+  // Snapshot the applicable cleaning checklist onto the task (best-effort)
+  await snapshotChecklistToTurnover(task.id, input.hostId, input.propertyId ?? null).catch(
+    (e) => console.error("snapshotChecklistToTurnover failed:", e)
+  );
 
   // Notify the auto-assigned cleaner
   if (cleaner?.user_id) {
