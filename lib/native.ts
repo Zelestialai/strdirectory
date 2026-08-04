@@ -76,7 +76,7 @@ export async function registerPushIfNative(
     const perm = await PushNotifications.requestPermissions();
     if (perm.receive !== "granted") return;
     await PushNotifications.register();
-    PushNotifications.addListener("registration", (t) => onToken?.(t.value));
+    PushNotifications.addListener("registration", (t: any) => onToken?.(t.value));
   } catch {
     /* ignore — push not available */
   }
