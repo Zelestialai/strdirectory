@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AdminCategoriesTable } from "@/components/admin/AdminCategoriesTable";
+import { AddCategoryButton } from "@/components/admin/AddCategoryButton";
 
 export const metadata = { title: "Manage Categories" };
 
@@ -21,7 +22,10 @@ export default async function AdminCategoriesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
-        <span className="text-sm text-gray-500">{enriched.length} total</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">{enriched.length} total</span>
+          <AddCategoryButton />
+        </div>
       </div>
 
       <AdminCategoriesTable categories={enriched} />

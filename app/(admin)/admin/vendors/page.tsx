@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AdminVendorTable } from "@/components/admin/AdminVendorTable";
+import { AddVendorButton } from "@/components/admin/AddVendorButton";
 
 export const metadata = { title: "Manage Vendors" };
 
@@ -25,13 +26,19 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
     .order("created_at", { ascending: false })
     .range(from, from + PER_PAGE - 1);
 
+  const { data: categories } = await supabase
+    .from("categories").select("id, name").order("name");
+
   const totalPages = Math.ceil((count ?? 0) / PER_PAGE);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
-        <span className="text-sm text-gray-500">{count ?? 0} total</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">{count ?? 0} total</span>
+          <AddVendorButton categories={categories ?? []} />
+        </div>
       </div>
 
       {/* Filters */}
@@ -67,7 +74,7 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
         </form>
       </div>
 
-      <AdminVendorTable vendors={vendors ?? []} />
+      <AdminVendorTable vendors={vendors ?? []} categories={categories ?? []} />
 
       {/* Pagination */}
       {totalPages > 1 && (

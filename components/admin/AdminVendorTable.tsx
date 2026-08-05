@@ -1,8 +1,9 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { CheckCircle2, XCircle, Star, EyeOff, Eye, ExternalLink } from "lucide-react";
+import { CheckCircle2, Star, EyeOff, Eye, ExternalLink, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { AdminVendorForm, type AdminCategory } from "@/components/admin/AdminVendorForm";
 
 interface Vendor {
   id: string;
@@ -11,6 +12,13 @@ interface Vendor {
   city: string | null;
   state: string | null;
   email: string | null;
+  phone?: string | null;
+  website?: string | null;
+  tagline?: string | null;
+  description?: string | null;
+  category_id?: string | null;
+  markets?: string[] | null;
+  subscription_tier?: string | null;
   is_verified: boolean;
   is_featured: boolean;
   is_active: boolean;
@@ -20,12 +28,18 @@ interface Vendor {
   category?: { name: string; slug: string } | null;
 }
 
-interface Props { vendors: Vendor[]; }
+interface Props { vendors: Vendor[]; categories?: AdminCategory[]; }
 
-export function AdminVendorTable({ vendors }: Props) {
+const TIER_BADGE: Record<string, string> = {
+  pro: "bg-blue-50 text-blue-700 border-blue-200",
+  featured: "bg-yellow-50 text-yellow-700 border-yellow-200",
+};
+
+export function AdminVendorTable({ vendors, categories = [] }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Vendor | null>(null);
 
   const update = async (id: string, patch: Record<string, boolean>) => {
     setLoadingId(id);
@@ -43,6 +57,7 @@ export function AdminVendorTable({ vendors }: Props) {
   }
 
   return (
+    <>
     <div className="card overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
@@ -92,6 +107,11 @@ export function AdminVendorTable({ vendors }: Props) {
                       : <span className="rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-xs">Pending</span>
                     }
                     {v.is_featured && <span className="rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-0.5 text-xs">Featured</span>}
+                    {v.subscription_tier && v.subscription_tier !== "free" && (
+                      <span className={`rounded-full border px-2 py-0.5 text-xs capitalize ${TIER_BADGE[v.subscription_tier] ?? "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                        {v.subscription_tier}
+                      </span>
+                    )}
                     {!v.is_active && <span className="rounded-full bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 text-xs">Inactive</span>}
                   </div>
                 </td>
@@ -141,6 +161,15 @@ export function AdminVendorTable({ vendors }: Props) {
                       {v.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
 
+                    {/* Edit details */}
+                    <button
+                      onClick={() => setEditing(v)}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-600 transition"
+                      title="Edit vendor"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+
                     {/* View public profile */}
                     <Link
                       href={`/vendors/${v.slug}`}
@@ -158,5 +187,30 @@ export function AdminVendorTable({ vendors }: Props) {
         </tbody>
       </table>
     </div>
+
+    {editing && (
+      <AdminVendorForm
+        categories={categories}
+        vendor={{
+          id: editing.id,
+          business_name: editing.business_name,
+          category_id: editing.category_id ?? null,
+          tagline: editing.tagline ?? null,
+          description: editing.description ?? null,
+          website: editing.website ?? null,
+          phone: editing.phone ?? null,
+          email: editing.email ?? null,
+          city: editing.city ?? null,
+          state: editing.state ?? null,
+          markets: editing.markets ?? [],
+          subscription_tier: editing.subscription_tier ?? "free",
+          is_verified: editing.is_verified,
+          is_featured: editing.is_featured,
+          is_active: editing.is_active,
+        }}
+        onClose={() => setEditing(null)}
+      />
+    )}
+    </>
   );
 }
