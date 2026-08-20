@@ -123,9 +123,18 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
               placeholder="https://www.airbnb.com/calendar/ical/…"
               className="input font-mono text-sm"
             />
-            <p className="mt-1.5 text-xs text-gray-400">
-              In Airbnb: Listing → Calendar → Export Calendar. In VRBO: Calendar → Import/Export.
-            </p>
+            <div className="mt-1.5 space-y-1 text-xs text-gray-400">
+              <p>
+                <span className="font-medium text-gray-500">Airbnb:</span> Listings → select your
+                listing → Calendar → Availability → Connect to another website → copy the exported
+                calendar link.
+              </p>
+              <p>
+                <span className="font-medium text-gray-500">VRBO:</span> Calendar → tap the listing →
+                Import &amp; Export → Export calendar → copy the link.
+              </p>
+              <p className="text-gray-300">Paste the link that ends in <span className="font-mono">.ics</span>.</p>
+            </div>
           </div>
 
           {error && (
