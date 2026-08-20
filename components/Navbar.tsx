@@ -5,7 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { MarketSwitcher } from "@/components/MarketSwitcher";
-import { Menu, X, Building2, ChevronDown, MapPin } from "lucide-react";
+import { Menu, X, ChevronDown, MapPin } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import type { User } from "@supabase/supabase-js";
 import type { Category } from "@/types";
 
@@ -75,9 +76,9 @@ export function Navbar({
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         {/* Logo + market switcher (switcher shown on all breakpoints) */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <Link href="/" className="flex items-center gap-2 text-brand-700 font-bold text-lg shrink-0">
-            <Building2 className="h-5 w-5" />
-            <span className="hidden sm:inline">StrVend</span>
+          <Link href="/" className="flex items-center text-brand-700 shrink-0" aria-label="STRVend home">
+            <Logo size={28} showWordmark={false} className="sm:hidden" />
+            <Logo size={28} showWordmark className="hidden sm:inline-flex" />
           </Link>
           <MarketSwitcher current={currentMarket} markets={markets} />
         </div>

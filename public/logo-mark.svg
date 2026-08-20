@@ -1,0 +1,6 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="STRVend">
+  <rect width="64" height="64" rx="14" fill="#0d9488"/>
+  <polygon points="32,14 51,33 13,33" fill="#fb7185"/>
+  <rect x="19" y="33" width="26" height="18" rx="1.5" fill="#ffffff"/>
+  <rect x="28" y="40" width="8" height="11" rx="1" fill="#0d9488"/>
+</svg>
