@@ -15,9 +15,25 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Redirect to intended destination after successful exchange
+      // New OAuth users have no role yet — send them to pick their account type.
+      // Otherwise honour an explicit `next`, or route hosts to their dashboard.
+      const userId = data.user?.id;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarded, role")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (profile && !profile.onboarded) {
+          return NextResponse.redirect(`${origin}/welcome`);
+        }
+        if (!searchParams.get("next") && profile?.role === "host") {
+          return NextResponse.redirect(`${origin}/host/dashboard`);
+        }
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

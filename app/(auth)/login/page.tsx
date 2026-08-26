@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
+import { GoogleButton } from "@/components/GoogleButton";
 import { Suspense } from "react";
 
 const schema = z.object({
@@ -51,6 +52,13 @@ function LoginForm() {
       <div className="card p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
         <p className="text-sm text-gray-500 mb-6">Sign in to your account</p>
+
+        <GoogleButton label="Sign in with Google" />
+        <div className="flex items-center gap-3 my-5">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs text-gray-400">or</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>

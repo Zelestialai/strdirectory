@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { MarketMultiSelect } from "@/components/MarketMultiSelect";
+import { GoogleButton } from "@/components/GoogleButton";
 import { Eye, EyeOff, CheckCircle2, Home, Sprout, Wrench, Search, ChevronLeft } from "lucide-react";
 
 type AccountType = "active_host" | "potential_host" | "vendor" | "user";
@@ -205,6 +206,14 @@ export default function RegisterPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Join STRVend</h1>
             <p className="text-sm text-gray-500 mb-6">What best describes you?</p>
+
+            <GoogleButton label="Sign up with Google" />
+            <div className="flex items-center gap-3 my-5">
+              <div className="h-px flex-1 bg-gray-200" />
+              <span className="text-xs text-gray-400">or continue with email</span>
+              <div className="h-px flex-1 bg-gray-200" />
+            </div>
+
             <div className="space-y-2.5 mb-6">
               {ACCOUNT_TYPES.map(({ value, icon: Icon, label, desc }) => {
                 const active = accountType === value;
