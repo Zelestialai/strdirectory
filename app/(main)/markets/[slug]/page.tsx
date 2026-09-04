@@ -94,6 +94,7 @@ export default async function MarketPage({ params, searchParams }: PageProps) {
     .select("*, category:categories(*)")
     .eq("is_active", true)
     .in("city", m.cities)
+    .eq("state", m.state) // city names collide across states — scope to this market's state
     .order("subscription_tier", { ascending: false }) // featured first
     .order("avg_rating", { ascending: false })
     .order("review_count", { ascending: false })

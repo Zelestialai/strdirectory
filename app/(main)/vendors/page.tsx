@@ -66,7 +66,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Sear
   if (activeCategory) query = query.eq("category_id", activeCategory.id);
 
   if (activeMarket) {
-    query = query.in("city", activeMarket.cities);
+    query = query.in("city", activeMarket.cities).eq("state", activeMarket.state);
   } else {
     if (searchParams.city) query = query.ilike("city", `%${searchParams.city}%`);
     if (searchParams.state) query = query.ilike("state", `%${searchParams.state}%`);

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getVendorCityCounts } from "@/lib/supabase/queries";
+import { getVendorCityCounts, cityStateKey } from "@/lib/supabase/queries";
 import { MarketsClientPage } from "@/components/MarketsClientPage";
 import type { Market } from "@/types";
 import { MapPin } from "lucide-react";
@@ -24,7 +24,10 @@ export default async function MarketsPage() {
   const cityCount = await getVendorCityCounts(supabase);
 
   function countForMarket(market: Market): number {
-    return market.cities.reduce((sum, city) => sum + (cityCount[city] ?? 0), 0);
+    return market.cities.reduce(
+      (sum, city) => sum + (cityCount[cityStateKey(city, market.state)] ?? 0),
+      0
+    );
   }
 
   const marketsWithCounts = (markets ?? []).map((m) => ({

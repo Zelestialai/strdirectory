@@ -7,8 +7,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * zero vendors even though real vendor rows exist for them.
  *
  * This paginates through every active vendor in batches of 1000 and returns
- * a city -> active vendor count map.
+ * a "city|state" -> active vendor count map. The state is part of the key
+ * because city names collide across states (e.g. Woodstock VA vs Woodstock NY),
+ * and a market must only count vendors in its own state.
  */
+export function cityStateKey(city: string, state: string | null | undefined): string {
+  return `${city.trim().toLowerCase()}|${(state ?? "").trim().toLowerCase()}`;
+}
+
 export async function getVendorCityCounts(
   supabase: SupabaseClient
 ): Promise<Record<string, number>> {
@@ -19,14 +25,17 @@ export async function getVendorCityCounts(
   while (true) {
     const { data, error } = await supabase
       .from("vendors")
-      .select("city")
+      .select("city, state")
       .eq("is_active", true)
       .range(from, from + PAGE_SIZE - 1);
 
     if (error || !data || data.length === 0) break;
 
-    for (const row of data as { city: string | null }[]) {
-      if (row.city) cityCount[row.city] = (cityCount[row.city] ?? 0) + 1;
+    for (const row of data as { city: string | null; state: string | null }[]) {
+      if (row.city) {
+        const key = cityStateKey(row.city, row.state);
+        cityCount[key] = (cityCount[key] ?? 0) + 1;
+      }
     }
 
     if (data.length < PAGE_SIZE) break; // last page

@@ -24,6 +24,7 @@ export default async function HomePage() {
       .select("*, category:categories(*)")
       .eq("is_active", true)
       .in("city", activeMarket.cities)
+      .eq("state", activeMarket.state)
       .order("avg_rating", { ascending: false })
       .order("review_count", { ascending: false })
       .limit(6);
