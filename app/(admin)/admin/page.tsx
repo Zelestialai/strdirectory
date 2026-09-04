@@ -60,6 +60,19 @@ export default async function AdminOverviewPage() {
     .order("created_at", { ascending: false })
     .limit(6);
 
+  const { data: oldestPending } = await supabase
+    .from("vendors")
+    .select("created_at")
+    .eq("is_verified", false)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const oldestPendingLabel = oldestPending?.created_at
+    ? new Date(oldestPending.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-gray-900">Overview</h1>
@@ -96,7 +109,10 @@ export default async function AdminOverviewPage() {
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-amber-800">
                 <Clock className="h-5 w-5 text-amber-500" />
-                <span className="font-medium">{pendingVendors} vendor{pendingVendors !== 1 ? "s" : ""} waiting for approval</span>
+                <span className="font-medium">
+                  {pendingVendors} vendor{pendingVendors !== 1 ? "s" : ""} waiting for approval
+                  {oldestPendingLabel && <span className="font-normal text-amber-600"> · oldest since {oldestPendingLabel}</span>}
+                </span>
               </div>
               <a href="/admin/vendors?filter=pending" className="btn-primary py-1.5 text-xs">Review Now</a>
             </div>
@@ -125,6 +141,7 @@ export default async function AdminOverviewPage() {
               <th className="px-5 py-3 text-left">Business</th>
               <th className="px-5 py-3 text-left hidden sm:table-cell">Category</th>
               <th className="px-5 py-3 text-left hidden md:table-cell">Location</th>
+              <th className="px-5 py-3 text-left hidden sm:table-cell">Registered</th>
               <th className="px-5 py-3 text-left">Status</th>
             </tr>
           </thead>
@@ -137,6 +154,9 @@ export default async function AdminOverviewPage() {
                 <td className="px-5 py-3 text-gray-500 hidden sm:table-cell">{v.category?.name ?? "—"}</td>
                 <td className="px-5 py-3 text-gray-500 hidden md:table-cell">
                   {[v.city, v.state].filter(Boolean).join(", ") || "—"}
+                </td>
+                <td className="px-5 py-3 text-gray-500 hidden sm:table-cell whitespace-nowrap">
+                  {v.created_at ? new Date(v.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
                 </td>
                 <td className="px-5 py-3">
                   {v.is_verified

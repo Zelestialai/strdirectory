@@ -35,6 +35,13 @@ const TIER_BADGE: Record<string, string> = {
   featured: "bg-yellow-50 text-yellow-700 border-yellow-200",
 };
 
+function fmtDate(s: string) {
+  return new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function daysAgo(s: string) {
+  return Math.floor((Date.now() - new Date(s).getTime()) / 86_400_000);
+}
+
 export function AdminVendorTable({ vendors, categories = [] }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -66,6 +73,7 @@ export function AdminVendorTable({ vendors, categories = [] }: Props) {
             <th className="px-4 py-3 text-left hidden lg:table-cell">Category</th>
             <th className="px-4 py-3 text-left hidden md:table-cell">Location</th>
             <th className="px-4 py-3 text-left hidden md:table-cell">Rating</th>
+            <th className="px-4 py-3 text-left hidden sm:table-cell">Registered</th>
             <th className="px-4 py-3 text-left">Status</th>
             <th className="px-4 py-3 text-center">Actions</th>
           </tr>
@@ -97,6 +105,14 @@ export function AdminVendorTable({ vendors, categories = [] }: Props) {
                     ? <span className="flex items-center gap-1 text-amber-600 font-medium">★ {Number(v.avg_rating).toFixed(1)} <span className="text-gray-400 font-normal">({v.review_count})</span></span>
                     : <span className="text-gray-400">No reviews</span>
                   }
+                </td>
+
+                {/* Registered date */}
+                <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">
+                  <div className="text-gray-600">{fmtDate(v.created_at)}</div>
+                  {!v.is_verified && v.is_active && (
+                    <div className="text-xs text-amber-600">waiting {daysAgo(v.created_at)}d</div>
+                  )}
                 </td>
 
                 {/* Status badges */}
