@@ -14,6 +14,7 @@ import {
   Star,
 } from "lucide-react";
 import { TurnoverChecklist } from "@/components/turnover/TurnoverChecklist";
+import { SharedPhotos } from "@/components/photos/SharedPhotos";
 
 interface Bid {
   id: string;
@@ -24,6 +25,7 @@ interface Bid {
 }
 interface Task {
   id: string;
+  property_id: string | null;
   title: string;
   notes: string | null;
   scheduled_date: string;
@@ -266,6 +268,14 @@ export function HostTurnovers({
               {/* Cleaning checklist progress (read-only for the host) */}
               {(t.status === "scheduled" || t.status === "assigned" || t.status === "completed") && (
                 <TurnoverChecklist taskId={t.id} />
+              )}
+
+              {/* Shared photos with the assigned cleaner */}
+              {t.property_id && t.status !== "open" && t.status !== "cancelled" && (
+                <div className="mt-4 border-t border-gray-100 pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Photos</p>
+                  <SharedPhotos propertyId={t.property_id} turnoverTaskId={t.id} />
+                </div>
               )}
 
               {/* Bids on open tasks */}

@@ -13,7 +13,7 @@ export default async function HostTurnoversPage() {
     supabase
       .from("turnover_tasks")
       .select(
-        `id, title, notes, scheduled_date, status, price_cents,
+        `id, property_id, title, notes, scheduled_date, status, price_cents,
          property:properties(name),
          assigned:vendors(business_name),
          bids:turnover_bids(id, price_cents, message, status, vendor:vendors(business_name, avg_rating, slug))`

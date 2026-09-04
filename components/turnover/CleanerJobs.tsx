@@ -13,9 +13,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { TurnoverChecklist } from "@/components/turnover/TurnoverChecklist";
+import { SharedPhotos } from "@/components/photos/SharedPhotos";
 
 interface Task {
   id: string;
+  property_id: string | null;
   title: string;
   notes: string | null;
   scheduled_date: string;
@@ -195,9 +197,15 @@ export function CleanerJobs({
       {tab === "scheduled" && (
         <List empty="No scheduled jobs yet.">
           {scheduled.map((t) => (
-            <div key={t.id} className="card p-5">
+            <div key={t.id} className="card p-5 space-y-4">
               <JobHeader t={t} scheduled />
               <TurnoverChecklist taskId={t.id} />
+              {t.property_id && (
+                <div className="border-t pt-4">
+                  <p className="text-sm font-semibold text-gray-800 mb-2">Photos</p>
+                  <SharedPhotos propertyId={t.property_id} turnoverTaskId={t.id} />
+                </div>
+              )}
             </div>
           ))}
         </List>

@@ -38,20 +38,20 @@ export default async function CleanerJobsPage() {
     await Promise.all([
       supabase
         .from("turnover_tasks")
-        .select("id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
+        .select("id, property_id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
         .eq("assigned_vendor_id", vendor.id)
         .eq("status", "assigned")
         .order("scheduled_date"),
       supabase
         .from("turnover_tasks")
-        .select("id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
+        .select("id, property_id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
         .eq("assigned_vendor_id", vendor.id)
         .eq("status", "scheduled")
         .gte("scheduled_date", today)
         .order("scheduled_date"),
       supabase
         .from("turnover_tasks")
-        .select("id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
+        .select("id, property_id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
         .eq("status", "open")
         .gte("scheduled_date", today)
         .order("scheduled_date")
