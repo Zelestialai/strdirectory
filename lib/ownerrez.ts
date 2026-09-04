@@ -310,15 +310,21 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
 
     let reservations = 0;
     let turnovers = 0;
+    const seenUids = new Set<string>(); // ownerrez event_uids kept this sync
 
     for (const b of bookings) {
       const orPropId = String(pick(b, ["property_id", "propertyId"]));
       const propertyId = propMap.get(orPropId);
       if (!propertyId) continue;
 
-      // Skip owner blocks (not guest stays) and cancelled bookings.
+      // Skip owner blocks / quote-holds (which surface as blocks) and cancelled
+      // bookings. OwnerRez flags cancellations with a `canceled_utc` timestamp
+      // (American spelling) and/or a `status` of "Cancelled" — not a boolean.
       if (pick<boolean>(b, ["is_block", "isBlock"]) === true) continue;
-      if (pick<boolean>(b, ["is_cancelled", "isCancelled", "cancelled"]) === true) continue;
+      const canceledAt = pick(b, ["canceled_utc", "cancelled_utc", "canceledUtc", "cancelledUtc"]);
+      if (canceledAt) continue;
+      const orStatus = String(pick(b, ["status"]) ?? "").toLowerCase();
+      if (orStatus.includes("cancel")) continue;
 
       const arrival = toDateStr(pick(b, ["arrival", "arrivalDate", "checkIn"]));
       const departure = toDateStr(pick(b, ["departure", "departureDate", "checkOut"]));
@@ -328,6 +334,7 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
       const bookingId = String(pick(b, ["id", "bookingId"]));
       const guest = pick<string>(b, ["guestName", "guest_name"]) ?? "Reservation";
       const eventUid = `ownerrez-${bookingId}`;
+      seenUids.add(eventUid);
 
       // Upsert calendar event
       await db.from("calendar_events").upsert(
@@ -368,6 +375,25 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
         });
         if (created) turnovers++;
       }
+    }
+
+    // 3. Prune OwnerRez events that are no longer active bookings (cancelled or
+    // removed upstream) so the calendar doesn't accumulate stale duplicates.
+    const { data: existingOrEvents } = await db
+      .from("calendar_events")
+      .select("id, event_uid")
+      .eq("host_id", hostId)
+      .like("event_uid", "ownerrez-%");
+
+    const staleIds = (existingOrEvents ?? [])
+      .filter((e) => !seenUids.has(e.event_uid))
+      .map((e) => e.id);
+
+    if (staleIds.length > 0) {
+      // Drop only still-open turnover tasks for those events; leave any the host
+      // already assigned/scheduled so in-progress jobs aren't disrupted.
+      await db.from("turnover_tasks").delete().in("calendar_event_id", staleIds).eq("status", "open");
+      await db.from("calendar_events").delete().in("id", staleIds);
     }
 
     await db
