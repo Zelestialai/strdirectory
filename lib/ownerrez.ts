@@ -25,8 +25,12 @@ function authHeader(auth: OwnerRezAuth): string {
 }
 
 /** Low-level GET against the OwnerRez API. Throws on non-2xx. */
-async function orGet(path: string, auth: OwnerRezAuth): Promise<any> {
-  const res = await fetch(`${BASE}${path}`, {
+async function orGet(pathOrUrl: string, auth: OwnerRezAuth): Promise<any> {
+  // Accept either a relative path ("/bookings?…") or a full/absolute URL
+  // (OwnerRez's pagination `next_page_url`). Relative paths are prefixed with
+  // BASE; anything already absolute is fetched as-is so we don't double up /v2.
+  const url = pathOrUrl.startsWith("http") ? pathOrUrl : `${BASE}${pathOrUrl}`;
+  const res = await fetch(url, {
     headers: {
       Authorization: authHeader(auth),
       Accept: "application/json",
@@ -36,7 +40,7 @@ async function orGet(path: string, auth: OwnerRezAuth): Promise<any> {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`OwnerRez ${path} → HTTP ${res.status} ${text.slice(0, 200)}`);
+    throw new Error(`OwnerRez ${pathOrUrl} → HTTP ${res.status} ${text.slice(0, 200)}`);
   }
   return res.json();
 }
@@ -47,15 +51,17 @@ async function orGetAll(path: string, auth: OwnerRezAuth, cap = 10): Promise<any
   let next: string | null = path;
   let pages = 0;
   while (next && pages < cap) {
-    const page: any = await orGet(next.startsWith("http") ? next.replace(BASE, "") : next, auth);
+    const page: any = await orGet(next, auth);
     if (Array.isArray(page)) {
       items.push(...page);
       break;
     }
     items.push(...(page.items ?? []));
     // OwnerRez v2 paginates with snake_case `next_page_url` (default page size
-    // is only 20). Support both spellings so we follow every page.
-    next = page.next_page_url ?? page.nextPageUrl ?? null;
+    // is only 20). It's a root-relative path that already contains `/v2/…`, so
+    // resolve it against the API origin to avoid a doubled `/v2/v2/` path.
+    const nextUrl: string | null = page.next_page_url ?? page.nextPageUrl ?? null;
+    next = nextUrl ? new URL(nextUrl, BASE).toString() : null;
     pages++;
   }
   return items;
