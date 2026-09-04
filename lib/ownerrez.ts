@@ -300,13 +300,34 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
     // silently drops every existing future reservation. We look back far enough
     // to capture all current/upcoming bookings, scope to the imported
     // properties, then keep only upcoming stays in the loop below.
+    // Use a very old `since_utc` so bookings made long in advance (a guest who
+    // reserved years ago) are still returned — the modified-since window must
+    // not exclude any active stay. Pagination is followed to completion.
     const orPropIds = Array.from(propMap.keys()).join(",");
-    const sinceUtc = new Date(Date.now() - 3 * 365 * 86_400_000).toISOString();
+    const sinceUtc = "2010-01-01T00:00:00Z";
     const bookings = await orGetAll(
       `/bookings?property_ids=${orPropIds}&since_utc=${encodeURIComponent(sinceUtc)}`,
       auth,
-      50
+      200
     );
+
+    // TEMP DIAGNOSTIC: capture what OwnerRez returned so we can inspect why a
+    // specific booking isn't landing. Written to host_integrations.last_error
+    // on success (read via SQL), then removed.
+    const _debug = JSON.stringify({
+      propMap: Array.from(propMap.entries()),
+      count: bookings.length,
+      bookings: bookings.slice(0, 60).map((b) => ({
+        id: pick(b, ["id", "bookingId"]),
+        pid: pick(b, ["property_id", "propertyId"]),
+        arr: pick(b, ["arrival", "arrivalDate", "checkIn"]),
+        dep: pick(b, ["departure", "departureDate", "checkOut"]),
+        block: pick(b, ["is_block", "isBlock"]),
+        canc: pick(b, ["canceled_utc", "cancelled_utc"]),
+        status: pick(b, ["status"]),
+        type: pick(b, ["type"]),
+      })),
+    }).slice(0, 8000);
 
     let reservations = 0;
     let turnovers = 0;
@@ -386,7 +407,7 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
       .update({
         status: "active",
         last_synced_at: new Date().toISOString(),
-        last_error: null,
+        last_error: _debug, // TEMP diagnostic
         updated_at: new Date().toISOString(),
       })
       .eq("id", integration.id);
