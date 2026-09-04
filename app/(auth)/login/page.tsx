@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { GoogleButton } from "@/components/GoogleButton";
-import { Suspense } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { Suspense, useState } from "react";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -19,6 +20,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const explicitNext = searchParams.get("next"); // null if not provided
   const supabase = createClient();
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -68,7 +71,14 @@ function LoginForm() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input {...register("password")} type="password" className="input" placeholder="••••••••" autoComplete="current-password" />
+            <div className="relative">
+              <input {...register("password")} type={showPassword ? "text" : "password"} className="input pr-10" placeholder="••••••••" autoComplete="current-password" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"}>
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
           </div>
           {errors.root && (
