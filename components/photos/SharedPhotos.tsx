@@ -141,6 +141,13 @@ export function SharedPhotos({ propertyId, turnoverTaskId }: Props) {
         <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
+      {tab === "job" && turnoverTaskId && (
+        <p className="text-xs text-gray-400">
+          Job photos are automatically removed 15 days after upload. Save anything you need to keep,
+          or add it to the property album.
+        </p>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
