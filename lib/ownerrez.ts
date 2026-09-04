@@ -294,10 +294,18 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
       }
     }
 
-    // 2. Bookings (upcoming, active) → calendar_events + turnovers
+    // 2. Bookings → calendar_events + turnovers.
+    // NOTE: OwnerRez `since_utc` is a "modified since" delta filter, NOT an
+    // arrival filter. Passing today only returns bookings changed today, which
+    // silently drops every existing future reservation. We look back far enough
+    // to capture all current/upcoming bookings, scope to the imported
+    // properties, then keep only upcoming stays in the loop below.
+    const orPropIds = Array.from(propMap.keys()).join(",");
+    const sinceUtc = new Date(Date.now() - 3 * 365 * 86_400_000).toISOString();
     const bookings = await orGetAll(
-      `/bookings?since_utc=${today}T00:00:00Z&status=active`,
-      auth
+      `/bookings?property_ids=${orPropIds}&since_utc=${encodeURIComponent(sinceUtc)}`,
+      auth,
+      50
     );
 
     let reservations = 0;
@@ -307,6 +315,10 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
       const orPropId = String(pick(b, ["property_id", "propertyId"]));
       const propertyId = propMap.get(orPropId);
       if (!propertyId) continue;
+
+      // Skip owner blocks (not guest stays) and cancelled bookings.
+      if (pick<boolean>(b, ["is_block", "isBlock"]) === true) continue;
+      if (pick<boolean>(b, ["is_cancelled", "isCancelled", "cancelled"]) === true) continue;
 
       const arrival = toDateStr(pick(b, ["arrival", "arrivalDate", "checkIn"]));
       const departure = toDateStr(pick(b, ["departure", "departureDate", "checkOut"]));
