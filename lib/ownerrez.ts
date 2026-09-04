@@ -53,7 +53,9 @@ async function orGetAll(path: string, auth: OwnerRezAuth, cap = 10): Promise<any
       break;
     }
     items.push(...(page.items ?? []));
-    next = page.nextPageUrl ?? null;
+    // OwnerRez v2 paginates with snake_case `next_page_url` (default page size
+    // is only 20). Support both spellings so we follow every page.
+    next = page.next_page_url ?? page.nextPageUrl ?? null;
     pages++;
   }
   return items;
@@ -306,28 +308,10 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
     const orPropIds = Array.from(propMap.keys()).join(",");
     const sinceUtc = "2010-01-01T00:00:00Z";
     const bookings = await orGetAll(
-      `/bookings?property_ids=${orPropIds}&since_utc=${encodeURIComponent(sinceUtc)}`,
+      `/bookings?property_ids=${orPropIds}&since_utc=${encodeURIComponent(sinceUtc)}&limit=100`,
       auth,
       200
     );
-
-    // TEMP DIAGNOSTIC: capture what OwnerRez returned so we can inspect why a
-    // specific booking isn't landing. Written to host_integrations.last_error
-    // on success (read via SQL), then removed.
-    const _debug = JSON.stringify({
-      propMap: Array.from(propMap.entries()),
-      count: bookings.length,
-      bookings: bookings.slice(0, 60).map((b) => ({
-        id: pick(b, ["id", "bookingId"]),
-        pid: pick(b, ["property_id", "propertyId"]),
-        arr: pick(b, ["arrival", "arrivalDate", "checkIn"]),
-        dep: pick(b, ["departure", "departureDate", "checkOut"]),
-        block: pick(b, ["is_block", "isBlock"]),
-        canc: pick(b, ["canceled_utc", "cancelled_utc"]),
-        status: pick(b, ["status"]),
-        type: pick(b, ["type"]),
-      })),
-    }).slice(0, 8000);
 
     let reservations = 0;
     let turnovers = 0;
@@ -407,7 +391,7 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
       .update({
         status: "active",
         last_synced_at: new Date().toISOString(),
-        last_error: _debug, // TEMP diagnostic
+        last_error: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", integration.id);
