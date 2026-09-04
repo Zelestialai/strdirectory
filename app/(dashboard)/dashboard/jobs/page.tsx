@@ -67,6 +67,16 @@ export default async function CleanerJobsPage() {
 
   return (
     <div className="space-y-6">
+      <a
+        href="/install"
+        className="flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 transition hover:bg-brand-100"
+      >
+        <span>
+          <span className="font-semibold">Add STRVend to your phone</span> — one-tap access to jobs,
+          checklists &amp; photos with the camera built in.
+        </span>
+        <span className="shrink-0 font-medium text-brand-700">Get the app →</span>
+      </a>
       <CleanerJobs
         assigned={(assigned as any) ?? []}
         scheduled={(scheduled as any) ?? []}

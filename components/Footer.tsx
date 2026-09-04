@@ -146,6 +146,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-brand-200">
               <li><Link href="/register" className="hover:text-white transition">List Your Business</Link></li>
               <li><Link href="/dashboard" className="hover:text-white transition">Vendor Dashboard</Link></li>
+              <li><Link href="/install" className="hover:text-white transition">Get the App</Link></li>
             </ul>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-brand-400 mt-6 mb-3">Company</h4>
             <ul className="space-y-2 text-sm text-brand-200">
