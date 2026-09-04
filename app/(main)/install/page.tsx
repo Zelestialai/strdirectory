@@ -119,7 +119,8 @@ export default function InstallPage() {
             <QrCode className="h-4 w-4" /> Scan to open
           </div>
           <div className="rounded-xl bg-white p-3 ring-1 ring-gray-100">
-            <Image src="/install-qr.svg" alt="Scan to open strvend.com" width={160} height={160} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/install-qr.svg" alt="Scan to open strvend.com" width={160} height={160} />
           </div>
           <p className="mt-3 text-xs text-gray-500">
             Point your phone camera here, then follow the steps for your device.
