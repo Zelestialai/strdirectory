@@ -39,6 +39,7 @@ export function Navbar({
   markets?: MarketBrief[];
 }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [catMenuOpen, setCatMenuOpen] = useState(false);
@@ -49,10 +50,17 @@ export function Navbar({
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) =>
-      setUser(session?.user ?? null)
-    );
+    async function loadRole(u: User | null) {
+      if (!u) { setIsAdmin(false); return; }
+      const { data: profile } = await supabase
+        .from("profiles").select("role").eq("id", u.id).maybeSingle();
+      setIsAdmin(profile?.role === "admin");
+    }
+    supabase.auth.getUser().then(({ data }) => { setUser(data.user); loadRole(data.user); });
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      loadRole(session?.user ?? null);
+    });
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -164,6 +172,12 @@ export function Navbar({
                 <div className="absolute right-0 mt-2 w-44 rounded-xl border bg-white shadow-lg py-1 z-50">
                   <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-50">My Dashboard</Link>
                   <Link href="/dashboard/profile" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-50">Edit Profile</Link>
+                  {isAdmin && (
+                    <>
+                      <hr className="my-1" />
+                      <Link href="/admin" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">Admin Panel</Link>
+                    </>
+                  )}
                   <hr className="my-1" />
                   <button onClick={signOut} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Sign Out</button>
                 </div>
@@ -211,6 +225,9 @@ export function Navbar({
           {user ? (
             <>
               <Link href="/dashboard" className="block py-1.5" onClick={() => setMenuOpen(false)}>My Dashboard</Link>
+              {isAdmin && (
+                <Link href="/admin" className="block py-1.5 font-medium text-brand-700" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
+              )}
               <button onClick={signOut} className="text-red-600 py-1.5">Sign Out</button>
             </>
           ) : (
