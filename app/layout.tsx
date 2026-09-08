@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { Analytics } from "@/components/Analytics";
 import { getActiveMarket, getAllMarkets } from "@/lib/market";
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col">
+        <Analytics />
         <Navbar currentMarket={currentMarket} markets={markets} />
         <main className="flex-1">{children}</main>
         <Footer />
