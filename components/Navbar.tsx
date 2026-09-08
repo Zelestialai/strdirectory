@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -48,6 +48,16 @@ export function Navbar({
   const mktRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Close any open menu whenever the route changes (fixes mobile menu staying
+  // open over the destination page after tapping a link).
+  useEffect(() => {
+    setMenuOpen(false);
+    setUserMenuOpen(false);
+    setCatMenuOpen(false);
+    setMktMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     async function loadRole(u: User | null) {
@@ -232,8 +242,8 @@ export function Navbar({
             </>
           ) : (
             <div className="flex gap-2 pt-2">
-              <Link href="/login" className="btn-secondary flex-1 justify-center">Sign In</Link>
-              <Link href="/register" className="btn-primary flex-1 justify-center">List Business</Link>
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-secondary flex-1 justify-center">Sign In</Link>
+              <Link href="/register" onClick={() => setMenuOpen(false)} className="btn-primary flex-1 justify-center">List Business</Link>
             </div>
           )}
         </div>
