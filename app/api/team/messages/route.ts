@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sendTeamMessageNotification, SITE_URL } from "@/lib/email";
+import { createNotification } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -71,5 +74,67 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the other party (email + in-app). Fire-and-forget: never block the send.
+  void notifyRecipient({
+    senderId: user.id,
+    recipientId: user.id === member.host_id ? member.vendor_user_id : member.host_id,
+    recipientIsHost: user.id !== member.host_id,
+    body: body.trim(),
+  });
+
   return NextResponse.json({ message }, { status: 201 });
+}
+
+async function notifyRecipient(opts: {
+  senderId: string;
+  recipientId: string | null;
+  recipientIsHost: boolean;
+  body: string;
+}) {
+  try {
+    if (!opts.recipientId) return;
+
+    // Sender display name.
+    const { data: senderProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", opts.senderId)
+      .maybeSingle();
+    const senderName = senderProfile?.full_name?.trim() || "A teammate";
+
+    // Recipient display name + email (email lives on auth.users, not profiles).
+    const { data: recipientProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", opts.recipientId)
+      .maybeSingle();
+    const recipientName = recipientProfile?.full_name?.trim() || "there";
+
+    const threadPath = opts.recipientIsHost ? "/host/dashboard/team" : "/dashboard/team";
+
+    // In-app notification (best effort).
+    await createNotification({
+      userId: opts.recipientId,
+      type: "reply",
+      title: `New message from ${senderName}`,
+      body: opts.body.length > 140 ? `${opts.body.slice(0, 140)}…` : opts.body,
+      link: threadPath,
+    });
+
+    // Email notification (best effort).
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(opts.recipientId);
+    const email = authUser?.user?.email;
+    if (!email) return;
+
+    await sendTeamMessageNotification({
+      recipientEmail: email,
+      recipientName,
+      senderName,
+      preview: opts.body,
+      threadUrl: `${SITE_URL}${threadPath}`,
+    });
+  } catch (err) {
+    console.error("team message notification failed:", err);
+  }
 }

@@ -230,3 +230,93 @@ export async function sendClaimVerificationEmail(data: ClaimEmailData) {
     html,
   });
 }
+
+// ─── Team Message Notification ────────────────────────────────────────────────
+
+export interface TeamMessageEmailData {
+  recipientEmail: string;
+  recipientName:  string;
+  senderName:     string;
+  preview:        string;
+  threadUrl:      string;
+}
+
+function escHtml(s: string) {
+  return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] ?? c));
+}
+
+export async function sendTeamMessageNotification(data: TeamMessageEmailData) {
+  const preview =
+    data.preview.length > 300 ? `${data.preview.slice(0, 300)}…` : data.preview;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New team message</title>
+</head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <tr>
+            <td style="background:#0d9488;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">STRVend</h1>
+              <p style="margin:6px 0 0;color:#99f6e4;font-size:13px;">New team message</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background:#ffffff;padding:32px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+              <p style="margin:0 0 20px;font-size:15px;color:#374151;">
+                Hi <strong>${escHtml(data.recipientName)}</strong>,
+              </p>
+              <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
+                <strong>${escHtml(data.senderName)}</strong> sent you a new message on your STRVend team.
+              </p>
+
+              <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:16px 20px;margin-bottom:28px;">
+                <p style="margin:0;font-size:14px;color:#134e4a;line-height:1.7;white-space:pre-wrap;">${escHtml(preview)}</p>
+              </div>
+
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <a href="${data.threadUrl}"
+                      style="display:inline-block;background:#0d9488;color:#ffffff;font-size:14px;font-weight:600;
+                             text-decoration:none;padding:10px 22px;border-radius:8px;">
+                      View &amp; Reply
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background:#f3f4f6;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;
+                       padding:20px 32px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">
+                You received this because you're on a team together on STRVend.<br />
+                © ${new Date().getFullYear()} STRVend
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return resend.emails.send({
+    from:    FROM_EMAIL,
+    to:      data.recipientEmail,
+    subject: `New message from ${data.senderName} — STRVend`,
+    html,
+  });
+}
