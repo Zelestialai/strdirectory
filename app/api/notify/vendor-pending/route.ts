@@ -26,7 +26,10 @@ export async function POST() {
     kind: "vendor",
     email: user.email ?? null,
     businessName: vendor.business_name,
-    categoryName: (vendor.category as { name: string } | null)?.name ?? null,
+    categoryName:
+      (Array.isArray(vendor.category)
+        ? (vendor.category[0] as { name: string } | undefined)?.name
+        : (vendor.category as { name: string } | null)?.name) ?? null,
     market: Array.isArray(vendor.markets) ? vendor.markets[0] ?? null : null,
   });
 
