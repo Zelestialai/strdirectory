@@ -153,6 +153,8 @@ export default function EditProfilePage() {
     }
 
     if (isNewVendor) {
+      // Notify admins that a new vendor listing is pending approval.
+      fetch("/api/notify/vendor-pending", { method: "POST" }).catch(() => {});
       router.push("/dashboard/onboarding");
       return;
     }

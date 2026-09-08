@@ -169,6 +169,23 @@ export default function RegisterPage() {
 
     setIsSubmitting(false);
 
+    if (!error) {
+      // Fire-and-forget: notify admins of the new registration.
+      const kind = accountType === "vendor" ? "vendor" : accountType === "user" ? "user" : "host";
+      fetch("/api/notify/registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind,
+          email: email.trim(),
+          fullName: fullName.trim(),
+          businessName: accountType === "vendor" ? businessName.trim() : undefined,
+          categoryName: accountType === "vendor" ? categories.find((c) => c.id === categoryId)?.name : undefined,
+          market: (accountType === "vendor" ? vendorMarkets : hostMarkets)[0],
+        }),
+      }).catch(() => {});
+    }
+
     if (error) { setStepError(error.message); }
     else if (data.session) { router.push(next); router.refresh(); }
     else { setEmailSent(true); }

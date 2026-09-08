@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { notifyAdminsOfSignup } from "@/lib/admin-notify";
 
 type Role = "active_host" | "potential_host" | "vendor" | "user";
 
@@ -64,6 +65,15 @@ export async function POST(request: Request) {
   if (profErr) {
     return NextResponse.json({ error: profErr.message }, { status: 500 });
   }
+
+  // Notify admins of the new (Google) registration.
+  await notifyAdminsOfSignup({
+    kind: role === "vendor" ? "vendor" : role === "user" ? "user" : "host",
+    email: user.email ?? null,
+    fullName: body.fullName ?? null,
+    businessName: role === "vendor" ? String(body.businessName ?? "").trim() || null : null,
+    market: preferredMarket,
+  });
 
   // 2. Host profile.
   if (role === "active_host" || role === "potential_host") {
