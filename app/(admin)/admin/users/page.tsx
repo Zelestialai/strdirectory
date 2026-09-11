@@ -19,6 +19,26 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
     .order("created_at", { ascending: false })
     .range(from, from + PER_PAGE - 1);
 
+  // Determine each listed account's real type so admins can see whether it's a
+  // host (has a host_profile) or a vendor (has a listing) — the role field alone
+  // doesn't tell you, and a mismatch breaks their dashboard.
+  const ids = (users ?? []).map((u) => u.id);
+  const [{ data: hostRows }, { data: vendorRows }] = await Promise.all([
+    supabase.from("host_profiles").select("id").in("id", ids),
+    supabase.from("vendors").select("user_id").in("user_id", ids),
+  ]);
+  const hostIds = new Set((hostRows ?? []).map((h) => h.id as string));
+  const vendorIds = new Set((vendorRows ?? []).map((v) => v.user_id as string));
+
+  const usersWithType = (users ?? []).map((u) => ({
+    ...u,
+    accountType: hostIds.has(u.id)
+      ? ("host" as const)
+      : vendorIds.has(u.id)
+      ? ("vendor" as const)
+      : null,
+  }));
+
   const totalPages = Math.ceil((count ?? 0) / PER_PAGE);
 
   return (
@@ -28,7 +48,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
         <span className="text-sm text-gray-500">{count ?? 0} total</span>
       </div>
 
-      <AdminUsersTable users={users ?? []} currentUserId={user?.id ?? ""} />
+      <AdminUsersTable users={usersWithType} currentUserId={user?.id ?? ""} />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
@@ -43,7 +63,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
       )}
 
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-        <strong>Tip:</strong> Use the role dropdown to promote/demote users. Delete permanently removes the account and all associated data.
+        <strong>Tip:</strong> The <strong>Account</strong> column shows what a user actually owns — a <em>Host</em> has properties, a <em>Vendor</em> has a listing. Their <strong>Role</strong> should match (host→host, vendor→vendor); a mismatch sends them to the wrong dashboard. When they differ, a ⚠ shortcut appears to fix it in one click. Delete permanently removes the account and all associated data.
       </div>
     </div>
   );

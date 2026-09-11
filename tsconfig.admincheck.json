@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "app/(admin)/admin/page.tsx",
+    "app/(admin)/admin/vendors/page.tsx",
+    "app/(admin)/admin/categories/page.tsx",
+    "app/api/admin/vendors/route.ts",
+    "app/api/admin/vendors/[id]/route.ts",
+    "app/api/admin/categories/route.ts",
+    "components/admin/AdminVendorForm.tsx",
+    "components/admin/AddVendorButton.tsx",
+    "components/admin/AddCategoryButton.tsx",
+    "components/admin/AdminVendorTable.tsx",
+    "components/MarketMultiSelect.tsx"
+  ]
+}
