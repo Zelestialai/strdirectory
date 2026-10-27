@@ -3,19 +3,26 @@ import { resend, FROM_EMAIL, SITE_URL } from "@/lib/email";
 
 /** Email addresses of every account with role = 'admin'. */
 export async function getAdminEmails(): Promise<string[]> {
-  const { data: admins } = await supabaseAdmin
+  const { data: admins, error: profErr } = await supabaseAdmin
     .from("profiles")
     .select("id")
     .eq("role", "admin");
+  if (profErr) console.error("[admin-notify] profiles query failed:", profErr.message);
   const ids = new Set((admins ?? []).map((a) => a.id as string));
-  if (ids.size === 0) return [];
+  if (ids.size === 0) {
+    console.warn("[admin-notify] no profiles with role='admin' — no one to notify");
+    return [];
+  }
 
   const emails: string[] = [];
   let page = 1;
   // Match admin profile ids to their auth emails (paginated for safety).
   for (;;) {
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error || !data) break;
+    if (error || !data) {
+      console.error("[admin-notify] auth.listUsers failed (check SUPABASE_SERVICE_ROLE_KEY):", error?.message);
+      break;
+    }
     for (const u of data.users) if (ids.has(u.id) && u.email) emails.push(u.email);
     if (data.users.length < 200) break;
     page++;
@@ -54,7 +61,12 @@ function esc(s: string) {
 }
 
 export async function notifyAdminsOfSignup(n: SignupNotice): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.error("[admin-notify] RESEND_API_KEY is not set — cannot send");
+    return;
+  }
   const to = await getAdminEmails();
+  console.log(`[admin-notify] kind=${n.kind} recipients=${to.length} from=${FROM_EMAIL}`);
   if (to.length === 0) return;
 
   const title =
@@ -98,8 +110,11 @@ export async function notifyAdminsOfSignup(n: SignupNotice): Promise<void> {
   </td></tr></table></body></html>`;
 
   try {
-    await resend.emails.send({ from: FROM_EMAIL, to, subject: `${title} — STRVend`, html });
-  } catch {
-    /* email failures must never block the user flow */
+    const { data, error } = await resend.emails.send({ from: FROM_EMAIL, to, subject: `${title} — STRVend`, html });
+    if (error) console.error("[admin-notify] Resend rejected send:", JSON.stringify(error));
+    else console.log("[admin-notify] sent ok, id=", data?.id);
+  } catch (e) {
+    // email failures must never block the user flow, but we log them
+    console.error("[admin-notify] send threw:", e instanceof Error ? e.message : String(e));
   }
 }
