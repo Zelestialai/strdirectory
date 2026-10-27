@@ -13,6 +13,7 @@ import { SaveVendorButton } from "@/components/SaveVendorButton";
 import { InviteToTeamButton } from "@/components/InviteToTeamButton";
 import { GoogleReviewsTab } from "@/components/GoogleReviewsTab";
 import { FlagReviewButton } from "@/components/FlagReviewButton";
+import { VendorPhotoGallery } from "@/components/VendorPhotoGallery";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -327,21 +328,7 @@ export default async function VendorProfilePage({
             {v.photos && v.photos.length > 0 && (
               <section>
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">Photos</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {[...v.photos]
-                    .sort((a, b) => a.sort_order - b.sort_order)
-                    .map((photo) => (
-                      <div key={photo.id} className="relative aspect-video rounded-xl overflow-hidden bg-gray-100">
-                        <Image
-                          src={photo.url}
-                          alt=""
-                          fill
-                          className="object-cover hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 640px) 50vw, 33vw"
-                        />
-                      </div>
-                    ))}
-                </div>
+                <VendorPhotoGallery photos={v.photos} />
               </section>
             )}
 
