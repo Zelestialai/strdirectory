@@ -17,9 +17,16 @@ export interface CreateTurnoverInput {
 }
 
 /**
- * Find an accepted cleaning vendor on the host's team, if any.
+ * Find an accepted cleaning vendor on the host's team who covers this property.
+ *
+ * Property scoping: a team member with rows in team_member_properties covers
+ * only those properties; a team member with no rows covers all of the host's
+ * properties (backward-compatible default).
  */
-async function findTeamCleaner(hostId: string): Promise<{
+async function findTeamCleaner(
+  hostId: string,
+  propertyId: string | null
+): Promise<{
   vendor_id: string;
   business_name: string;
   user_id: string | null;
@@ -28,14 +35,35 @@ async function findTeamCleaner(hostId: string): Promise<{
   const { data } = await supabaseAdmin
     .from("team_members")
     .select(
-      "vendor_id, vendors!inner(id, business_name, user_id, email, category:categories(slug))"
+      "id, vendor_id, vendors!inner(id, business_name, user_id, email, category:categories(slug))"
     )
     .eq("host_id", hostId)
     .eq("status", "accepted");
 
-  const match = (data ?? []).find(
+  const cleaners = (data ?? []).filter(
     (m) => (m.vendors as any)?.category?.slug === CLEANING_SLUG
   );
+  if (cleaners.length === 0) return null;
+
+  // Load each cleaner's property scope.
+  const { data: scopes } = await supabaseAdmin
+    .from("team_member_properties")
+    .select("team_member_id, property_id")
+    .in(
+      "team_member_id",
+      cleaners.map((m) => m.id)
+    );
+  const scopeByMember = new Map<string, Set<string>>();
+  for (const s of scopes ?? []) {
+    if (!scopeByMember.has(s.team_member_id)) scopeByMember.set(s.team_member_id, new Set());
+    scopeByMember.get(s.team_member_id)!.add(s.property_id as string);
+  }
+
+  const match = cleaners.find((m) => {
+    const scope = scopeByMember.get(m.id);
+    if (!scope || scope.size === 0) return true; // unrestricted (covers all)
+    return propertyId != null && scope.has(propertyId);
+  });
   if (!match) return null;
   const v = match.vendors as any;
   return { vendor_id: v.id, business_name: v.business_name, user_id: v.user_id, email: v.email };
@@ -57,7 +85,7 @@ export async function createTurnoverTask(input: CreateTurnoverInput) {
     if (existing) return null;
   }
 
-  const cleaner = await findTeamCleaner(input.hostId);
+  const cleaner = await findTeamCleaner(input.hostId, input.propertyId ?? null);
 
   const row = {
     host_id: input.hostId,

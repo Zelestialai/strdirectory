@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Users, UserPlus, Clock, ChevronRight } from "lucide-react";
 import { TeamMessageThread } from "@/components/TeamMessageThread";
+import { TeamPropertyScope } from "@/components/TeamPropertyScope";
 
 export const metadata = { title: "My Team | STRVend Host" };
 
@@ -27,6 +28,26 @@ export default async function HostTeamPage({
 
   const accepted = (members ?? []).filter((m) => m.status === "accepted");
   const pending  = (members ?? []).filter((m) => m.status === "pending");
+
+  // Host's properties + each accepted member's property scope, so the host can
+  // limit a cleaner to specific properties (e.g. only Oakhurst).
+  const { data: properties } = await supabase
+    .from("properties")
+    .select("id, name")
+    .eq("host_id", user!.id)
+    .order("name");
+
+  const acceptedIds = accepted.map((m) => m.id);
+  const { data: scopeRows } = acceptedIds.length
+    ? await supabase
+        .from("team_member_properties")
+        .select("team_member_id, property_id")
+        .in("team_member_id", acceptedIds)
+    : { data: [] as { team_member_id: string; property_id: string }[] };
+  const scopeByMember: Record<string, string[]> = {};
+  for (const r of scopeRows ?? []) {
+    (scopeByMember[r.team_member_id] ??= []).push(r.property_id);
+  }
 
   const activeThreadId = searchParams.thread;
   const activeMember = activeThreadId
@@ -117,28 +138,40 @@ export default async function HostTeamPage({
                 category?: { name: string; color?: string } | null;
               };
               const isActive = m.id === activeThreadId;
+              const isCleaner = (v.category?.name ?? "").toLowerCase().includes("clean");
               return (
-                <div key={m.id} className={`card p-4 flex items-center gap-3 ${isActive ? "ring-2 ring-teal-400" : ""}`}>
-                  <div className="h-10 w-10 rounded-full bg-teal-50 flex items-center justify-center text-teal-700 font-bold shrink-0">
-                    {v.business_name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm">{v.business_name}</p>
-                    <p className="text-xs text-gray-500">{v.category?.name ?? "Vendor"}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {v.slug && (
-                      <Link href={`/vendors/${v.id}`} className="text-xs text-gray-400 hover:text-gray-600 transition">
-                        Profile
+                <div key={m.id} className={`card p-4 ${isActive ? "ring-2 ring-teal-400" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-teal-50 flex items-center justify-center text-teal-700 font-bold shrink-0">
+                      {v.business_name[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm">{v.business_name}</p>
+                      <p className="text-xs text-gray-500">{v.category?.name ?? "Vendor"}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {v.slug && (
+                        <Link href={`/vendors/${v.id}`} className="text-xs text-gray-400 hover:text-gray-600 transition">
+                          Profile
+                        </Link>
+                      )}
+                      <Link
+                        href={`/host/dashboard/team?thread=${m.id}`}
+                        className="flex items-center gap-1 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg px-3 py-1.5 transition"
+                      >
+                        Message <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
-                    )}
-                    <Link
-                      href={`/host/dashboard/team?thread=${m.id}`}
-                      className="flex items-center gap-1 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg px-3 py-1.5 transition"
-                    >
-                      Message <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
+                    </div>
                   </div>
+                  {isCleaner && (
+                    <div className="mt-3 border-t pt-3">
+                      <TeamPropertyScope
+                        memberId={m.id}
+                        properties={properties ?? []}
+                        selectedIds={scopeByMember[m.id] ?? []}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}

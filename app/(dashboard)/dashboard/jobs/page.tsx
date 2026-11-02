@@ -20,7 +20,7 @@ export default async function CleanerJobsPage() {
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("id")
+    .select("id, markets")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -33,6 +33,21 @@ export default async function CleanerJobsPage() {
   }
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // Open/biddable jobs are scoped to the markets this cleaner's listing serves,
+  // so they never see every host's jobs platform-wide.
+  const markets: string[] = Array.isArray(vendor.markets) ? (vendor.markets as string[]) : [];
+
+  const openQuery = markets.length
+    ? supabase
+        .from("turnover_tasks")
+        .select("id, property_id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
+        .eq("status", "open")
+        .gte("scheduled_date", today)
+        .in("market_slug", markets)
+        .order("scheduled_date")
+        .limit(50)
+    : Promise.resolve({ data: [] as unknown[] });
 
   const [{ data: assigned }, { data: scheduled }, { data: open }, { data: bids }] =
     await Promise.all([
@@ -49,13 +64,7 @@ export default async function CleanerJobsPage() {
         .eq("status", "scheduled")
         .gte("scheduled_date", today)
         .order("scheduled_date"),
-      supabase
-        .from("turnover_tasks")
-        .select("id, property_id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
-        .eq("status", "open")
-        .gte("scheduled_date", today)
-        .order("scheduled_date")
-        .limit(50),
+      openQuery,
       supabase
         .from("turnover_bids")
         .select("task_id, price_cents")
