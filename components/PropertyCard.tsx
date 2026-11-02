@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Home, RefreshCw, Pencil, Trash2, Clock, Link2, Plug } from "lucide-react";
+import { Home, RefreshCw, Pencil, Trash2, Clock, Link2, Plug, MapPin, AlertTriangle } from "lucide-react";
 
 interface Property {
   id: string;
@@ -10,6 +10,7 @@ interface Property {
   ical_url: string | null;
   last_synced_at: string | null;
   external_source?: string | null;
+  market_slug?: string | null;
 }
 
 interface Props {
@@ -88,6 +89,19 @@ export function PropertyCard({ property, onEdit, onDelete, onSynced }: Props) {
             </div>
             {property.address && (
               <p className="text-xs text-gray-500 truncate">{property.address}</p>
+            )}
+            {property.market_slug ? (
+              <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-gray-400 capitalize">
+                <MapPin className="h-3 w-3" /> {property.market_slug.replace(/-/g, " ")}
+              </p>
+            ) : (
+              <button
+                onClick={() => onEdit(property)}
+                className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[11px] font-medium hover:bg-amber-100 transition"
+                title="This property has no market — jobs won't reach the right cleaners until you set it"
+              >
+                <AlertTriangle className="h-3 w-3" /> Set market
+              </button>
             )}
           </div>
         </div>

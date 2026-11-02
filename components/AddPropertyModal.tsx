@@ -58,6 +58,10 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
+    if (!marketSlug) {
+      setError("Please select the market this property is in.");
+      return;
+    }
     setSaving(true);
     setError(null);
 
@@ -134,11 +138,12 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
 
           {/* Market */}
           <div>
-            <label className="label">Market</label>
+            <label className="label">Market *</label>
             <select
               value={marketSlug}
               onChange={(e) => setMarketSlug(e.target.value)}
               className="input"
+              required
             >
               <option value="">Select the market this property is in…</option>
               {markets.map((m) => (
@@ -185,7 +190,7 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
             <button type="button" onClick={onClose} className="btn-secondary text-sm">
               Cancel
             </button>
-            <button type="submit" disabled={saving || !name.trim()} className="btn-primary text-sm">
+            <button type="submit" disabled={saving || !name.trim() || !marketSlug} className="btn-primary text-sm">
               {saving ? "Saving…" : editing ? "Save Changes" : "Add Property"}
             </button>
           </div>

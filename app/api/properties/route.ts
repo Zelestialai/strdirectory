@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
 
   const { name, address, ical_url, market_slug } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  if (!market_slug) return NextResponse.json({ error: "Market is required" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("properties")
