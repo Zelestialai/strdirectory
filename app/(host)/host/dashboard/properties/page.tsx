@@ -14,6 +14,7 @@ interface Property {
   ical_url: string | null;
   last_synced_at: string | null;
   external_source?: string | null;
+  market_slug?: string | null;
 }
 
 export default function PropertiesPage() {

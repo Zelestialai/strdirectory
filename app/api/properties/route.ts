@@ -21,12 +21,18 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, address, ical_url } = await req.json();
+  const { name, address, ical_url, market_slug } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("properties")
-    .insert({ host_id: user.id, name: name.trim(), address: address || null, ical_url: ical_url || null })
+    .insert({
+      host_id: user.id,
+      name: name.trim(),
+      address: address || null,
+      ical_url: ical_url || null,
+      market_slug: market_slug || null,
+    })
     .select()
     .single();
 

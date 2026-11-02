@@ -9,6 +9,13 @@ interface Property {
   address: string | null;
   ical_url: string | null;
   last_synced_at: string | null;
+  market_slug?: string | null;
+}
+
+interface MarketOption {
+  slug: string;
+  name: string;
+  state: string | null;
 }
 
 interface Props {
@@ -21,6 +28,8 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
   const [name, setName] = useState(editing?.name ?? "");
   const [address, setAddress] = useState(editing?.address ?? "");
   const [icalUrl, setIcalUrl] = useState(editing?.ical_url ?? "");
+  const [marketSlug, setMarketSlug] = useState(editing?.market_slug ?? "");
+  const [markets, setMarkets] = useState<MarketOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -29,11 +38,20 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
     nameRef.current?.focus();
   }, []);
 
+  // Load markets for the picker.
+  useEffect(() => {
+    fetch("/api/market")
+      .then((r) => r.json())
+      .then((d) => setMarkets(d.markets ?? []))
+      .catch(() => {});
+  }, []);
+
   // Reset form when editing target changes
   useEffect(() => {
     setName(editing?.name ?? "");
     setAddress(editing?.address ?? "");
     setIcalUrl(editing?.ical_url ?? "");
+    setMarketSlug(editing?.market_slug ?? "");
     setError(null);
   }, [editing]);
 
@@ -55,6 +73,7 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
           name: name.trim(),
           address: address.trim() || null,
           ical_url: icalUrl.trim() || null,
+          market_slug: marketSlug || null,
         }),
       });
 
@@ -111,6 +130,26 @@ export function AddPropertyModal({ editing, onClose, onSaved }: Props) {
               placeholder="123 Main St, Aspen CO 81611"
               className="input"
             />
+          </div>
+
+          {/* Market */}
+          <div>
+            <label className="label">Market</label>
+            <select
+              value={marketSlug}
+              onChange={(e) => setMarketSlug(e.target.value)}
+              className="input"
+            >
+              <option value="">Select the market this property is in…</option>
+              {markets.map((m) => (
+                <option key={m.slug} value={m.slug}>
+                  {m.name}{m.state ? `, ${m.state}` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-gray-400">
+              Determines which cleaners see this property&apos;s turnover jobs. Set it to where the property actually is.
+            </p>
           </div>
 
           {/* iCal URL */}

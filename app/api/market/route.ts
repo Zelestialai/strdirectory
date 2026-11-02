@@ -3,6 +3,17 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { MARKET_COOKIE } from "@/lib/market";
 
+// GET — list all active markets (for pickers like the property form).
+export async function GET() {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("markets")
+    .select("slug, name, state")
+    .eq("is_active", true)
+    .order("name");
+  return NextResponse.json({ markets: data ?? [] });
+}
+
 // POST — set the active market. Body: { slug }
 // Sets a 1-year cookie and, if the user is logged in, saves it to their profile.
 export async function POST(req: NextRequest) {

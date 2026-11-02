@@ -87,6 +87,18 @@ export async function createTurnoverTask(input: CreateTurnoverInput) {
 
   const cleaner = await findTeamCleaner(input.hostId, input.propertyId ?? null);
 
+  // The job's market comes from the property it's for, falling back to whatever
+  // the caller passed (host's preferred market) only when the property has none.
+  let marketSlug = input.marketSlug ?? null;
+  if (input.propertyId) {
+    const { data: prop } = await supabaseAdmin
+      .from("properties")
+      .select("market_slug")
+      .eq("id", input.propertyId)
+      .maybeSingle();
+    if (prop?.market_slug) marketSlug = prop.market_slug;
+  }
+
   const row = {
     host_id: input.hostId,
     property_id: input.propertyId ?? null,
@@ -95,7 +107,7 @@ export async function createTurnoverTask(input: CreateTurnoverInput) {
     notes: input.notes ?? null,
     scheduled_date: input.scheduledDate,
     price_cents: input.priceCents ?? null,
-    market_slug: input.marketSlug ?? null,
+    market_slug: marketSlug,
     status: cleaner ? "assigned" : "open",
     assigned_vendor_id: cleaner?.vendor_id ?? null,
   };
