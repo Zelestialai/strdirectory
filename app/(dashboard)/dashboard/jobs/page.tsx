@@ -41,7 +41,7 @@ export default async function CleanerJobsPage() {
   const openQuery = markets.length
     ? supabase
         .from("turnover_tasks")
-        .select("id, property_id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
+        .select("id, host_id, property_id, title, notes, scheduled_date, status, price_cents, market_slug, property:properties(name)")
         .eq("status", "open")
         .gte("scheduled_date", today)
         .in("market_slug", markets)
@@ -74,6 +74,40 @@ export default async function CleanerJobsPage() {
   const myBids: Record<string, number> = {};
   for (const b of bids ?? []) myBids[b.task_id] = b.price_cents;
 
+  // Hide a host's open jobs that this cleaner has been scoped away from. If the
+  // cleaner is on a host's team with a restricted property scope, that host's
+  // open jobs for other properties should not appear on their board.
+  const { data: myTeams } = await supabase
+    .from("team_members")
+    .select("id, host_id")
+    .eq("vendor_id", vendor.id)
+    .eq("status", "accepted");
+  const teamMemberIds = (myTeams ?? []).map((t) => t.id as string);
+  const { data: myScopes } = teamMemberIds.length
+    ? await supabase
+        .from("team_member_properties")
+        .select("team_member_id, property_id")
+        .in("team_member_id", teamMemberIds)
+    : { data: [] as { team_member_id: string; property_id: string }[] };
+
+  // host_id -> set of property_ids the cleaner is scoped to (only hosts that
+  // actually restricted them; an unrestricted team membership isn't listed).
+  const hostToMember = new Map<string, string>();
+  for (const t of myTeams ?? []) hostToMember.set(t.id as string, t.host_id as string);
+  const restrictedHostScope = new Map<string, Set<string>>();
+  for (const s of myScopes ?? []) {
+    const hostId = hostToMember.get(s.team_member_id);
+    if (!hostId) continue;
+    if (!restrictedHostScope.has(hostId)) restrictedHostScope.set(hostId, new Set());
+    restrictedHostScope.get(hostId)!.add(s.property_id as string);
+  }
+
+  const openFiltered = ((open as any[]) ?? []).filter((job) => {
+    const scope = restrictedHostScope.get(job.host_id);
+    if (!scope) return true; // not a restricted team host — normal marketplace
+    return job.property_id != null && scope.has(job.property_id);
+  });
+
   return (
     <div className="space-y-6">
       <a
@@ -89,7 +123,7 @@ export default async function CleanerJobsPage() {
       <CleanerJobs
         assigned={(assigned as any) ?? []}
         scheduled={(scheduled as any) ?? []}
-        open={(open as any) ?? []}
+        open={openFiltered as any}
         myBids={myBids}
       />
       {profile?.ical_token && (
