@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
@@ -11,6 +11,9 @@ import {
   MapPin,
   Gavel,
   Sparkles,
+  List as ListIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { TurnoverChecklist } from "@/components/turnover/TurnoverChecklist";
 import { SharedPhotos } from "@/components/photos/SharedPhotos";
@@ -37,6 +40,16 @@ function fmtDate(d: string) {
     day: "numeric",
   });
 }
+function ymd(dt: Date) {
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+type JobKind = "assigned" | "scheduled" | "open";
+const KIND_STYLE: Record<JobKind, string> = {
+  assigned: "bg-amber-100 text-amber-800",
+  scheduled: "bg-green-100 text-green-800",
+  open: "bg-brand-50 text-brand-700",
+};
 
 export function CleanerJobs({
   assigned,
@@ -50,13 +63,34 @@ export function CleanerJobs({
   myBids: Record<string, number>; // task_id -> price_cents
 }) {
   const router = useRouter();
+  const [mode, setMode] = useState<"list" | "calendar">("list");
   const [tab, setTab] = useState<"scheduled" | "assigned" | "open">(
     assigned.length > 0 ? "assigned" : "scheduled"
   );
+  const [cursor, setCursor] = useState(() => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1);
+  });
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [bidFor, setBidFor] = useState<string | null>(null);
   const [bidPrice, setBidPrice] = useState("");
   const [bidMsg, setBidMsg] = useState("");
+
+  // All jobs (accepted or not) tagged by kind, for the calendar.
+  const allJobs = useMemo(
+    () => [
+      ...assigned.map((t) => ({ ...t, kind: "assigned" as JobKind })),
+      ...scheduled.map((t) => ({ ...t, kind: "scheduled" as JobKind })),
+      ...open.map((t) => ({ ...t, kind: "open" as JobKind })),
+    ],
+    [assigned, scheduled, open]
+  );
+  const jobsByDate = useMemo(() => {
+    const m: Record<string, (Task & { kind: JobKind })[]> = {};
+    for (const j of allJobs) (m[j.scheduled_date] ??= []).push(j);
+    return m;
+  }, [allJobs]);
 
   async function respond(taskId: string, action: "accept" | "decline") {
     setBusy(taskId + action);
@@ -101,13 +135,42 @@ export function CleanerJobs({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Turnover Jobs</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Accept assigned jobs, bid on open ones, and see your cleaning schedule.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Turnover Jobs</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Accept assigned jobs, bid on open ones, and see your cleaning schedule.
+          </p>
+        </div>
+        <div className="inline-flex shrink-0 rounded-lg border border-gray-200 bg-white p-0.5">
+          <button
+            onClick={() => setMode("list")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${mode === "list" ? "bg-brand-600 text-white" : "text-gray-600 hover:text-brand-700"}`}
+          >
+            <ListIcon className="h-4 w-4" /> List
+          </button>
+          <button
+            onClick={() => setMode("calendar")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${mode === "calendar" ? "bg-brand-600 text-white" : "text-gray-600 hover:text-brand-700"}`}
+          >
+            <CalendarDays className="h-4 w-4" /> Calendar
+          </button>
+        </div>
       </div>
 
+      {mode === "calendar" && (
+        <CalendarView
+          jobsByDate={jobsByDate}
+          cursor={cursor}
+          setCursor={setCursor}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          respond={respond}
+          busy={busy}
+        />
+      )}
+
+      {mode === "list" && (<>
       <div className="flex gap-2 flex-wrap">
         {TABS.map((t) => (
           <button
@@ -209,6 +272,133 @@ export function CleanerJobs({
             </div>
           ))}
         </List>
+      )}
+      </>)}
+    </div>
+  );
+}
+
+// ── Month calendar: all jobs (accepted or not), click a day to act ────────────
+function CalendarView({
+  jobsByDate,
+  cursor,
+  setCursor,
+  selectedDate,
+  setSelectedDate,
+  respond,
+  busy,
+}: {
+  jobsByDate: Record<string, (Task & { kind: JobKind })[]>;
+  cursor: Date;
+  setCursor: (d: Date) => void;
+  selectedDate: string | null;
+  setSelectedDate: (d: string | null) => void;
+  respond: (taskId: string, action: "accept" | "decline") => void;
+  busy: string | null;
+}) {
+  const todayStr = ymd(new Date());
+  const monthLabel = cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const cells = useMemo(() => {
+    const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+    const gridStart = new Date(first);
+    gridStart.setDate(first.getDate() - first.getDay());
+    return Array.from({ length: 42 }, (_, i) => {
+      const d = new Date(gridStart);
+      d.setDate(gridStart.getDate() + i);
+      return d;
+    });
+  }, [cursor]);
+
+  const dayJobs = selectedDate ? jobsByDate[selectedDate] ?? [] : [];
+
+  return (
+    <div className="space-y-4">
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100" aria-label="Previous month">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-gray-900">{monthLabel}</span>
+            <button onClick={() => { const n = new Date(); setCursor(new Date(n.getFullYear(), n.getMonth(), 1)); }}
+              className="rounded-md border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">Today</button>
+          </div>
+          <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100" aria-label="Next month">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 border-b bg-gray-50 text-center text-xs font-medium text-gray-400">
+          {WEEKDAYS.map((w) => <div key={w} className="py-2">{w}</div>)}
+        </div>
+
+        <div className="grid grid-cols-7">
+          {cells.map((d, i) => {
+            const dayStr = ymd(d);
+            const inMonth = d.getMonth() === cursor.getMonth();
+            const isToday = dayStr === todayStr;
+            const isSel = dayStr === selectedDate;
+            const dEvents = jobsByDate[dayStr] ?? [];
+            return (
+              <button
+                key={i}
+                onClick={() => setSelectedDate(dEvents.length ? dayStr : null)}
+                className={`min-h-[92px] border-b border-r p-1.5 text-left align-top ${i % 7 === 0 ? "border-l" : ""} ${inMonth ? "bg-white" : "bg-gray-50/60"} ${isSel ? "ring-2 ring-inset ring-brand-400" : ""} ${dEvents.length ? "cursor-pointer hover:bg-brand-50/40" : "cursor-default"}`}
+              >
+                <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs ${isToday ? "bg-brand-600 text-white font-semibold" : inMonth ? "text-gray-700" : "text-gray-300"}`}>
+                  {d.getDate()}
+                </span>
+                <div className="mt-1 space-y-1">
+                  {dEvents.slice(0, 3).map((j) => (
+                    <div key={j.id} title={`${j.title}${j.property ? " · " + j.property.name : ""}`}
+                      className={`truncate rounded px-1 py-0.5 text-[10px] leading-tight ${KIND_STYLE[j.kind]}`}>
+                      {j.property?.name || j.title}
+                    </div>
+                  ))}
+                  {dEvents.length > 3 && <div className="px-1 text-[10px] text-gray-400">+{dEvents.length - 3} more</div>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 px-4 py-2 text-[11px] text-gray-500 border-t">
+          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-amber-100 border border-amber-200" /> Needs response</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-green-100 border border-green-200" /> Accepted</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-brand-50 border border-brand-200" /> Open to bid</span>
+        </div>
+      </div>
+
+      {selectedDate && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-700">{fmtDate(selectedDate)}</h3>
+          {dayJobs.length === 0 ? (
+            <p className="text-sm text-gray-400">No jobs on this day.</p>
+          ) : (
+            dayJobs.map((j) => (
+              <div key={j.id} className="card p-4">
+                <JobHeader t={j} scheduled={j.kind === "scheduled"} showBudget={j.kind === "open"} />
+                {j.kind === "assigned" && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <button onClick={() => respond(j.id, "accept")} disabled={busy === j.id + "accept"}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+                      {busy === j.id + "accept" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Accept
+                    </button>
+                    <button onClick={() => respond(j.id, "decline")} disabled={busy === j.id + "decline"}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                      <X className="h-3.5 w-3.5" /> Decline
+                    </button>
+                  </div>
+                )}
+                {j.kind === "open" && (
+                  <p className="mt-2 text-xs text-gray-500">Open job — switch to the List view's “Open jobs” tab to place a bid.</p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
