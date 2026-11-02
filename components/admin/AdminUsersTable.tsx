@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Trash2, Eye } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 type AccountType = "host" | "vendor" | null;
@@ -35,6 +35,30 @@ export function AdminUsersTable({ users, currentUserId }: { users: Profile[]; cu
   const [, startTransition] = useTransition();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmViewId, setConfirmViewId] = useState<string | null>(null);
+
+  const viewAs = async (id: string) => {
+    setLoadingId(id);
+    try {
+      const res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(json.error || "Could not start view-as session.");
+        setLoadingId(null);
+        setConfirmViewId(null);
+        return;
+      }
+      window.location.href = json.redirect || "/";
+    } catch {
+      alert("Could not start view-as session.");
+      setLoadingId(null);
+      setConfirmViewId(null);
+    }
+  };
 
   const changeRole = async (id: string, role: string) => {
     setLoadingId(id);
@@ -122,9 +146,9 @@ export function AdminUsersTable({ users, currentUserId }: { users: Profile[]; cu
                 <td className="px-4 py-3 text-gray-500 hidden md:table-cell text-xs">
                   {formatDate(u.created_at)}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-3">
                   {isSelf ? (
-                    <span className="text-xs text-gray-300">—</span>
+                    <div className="text-center text-xs text-gray-300">—</div>
                   ) : confirmDeleteId === u.id ? (
                     <div className="flex items-center justify-center gap-2">
                       <button
@@ -132,21 +156,46 @@ export function AdminUsersTable({ users, currentUserId }: { users: Profile[]; cu
                         disabled={isLoading}
                         className="rounded-lg bg-red-600 text-white px-2.5 py-1 text-xs font-medium hover:bg-red-700 transition"
                       >
-                        {isLoading ? "Deleting…" : "Confirm"}
+                        {isLoading ? "Deleting…" : "Confirm delete"}
                       </button>
                       <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:text-gray-600">
                         Cancel
                       </button>
                     </div>
+                  ) : confirmViewId === u.id ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => viewAs(u.id)}
+                        disabled={isLoading}
+                        className="rounded-lg bg-amber-500 text-amber-950 px-2.5 py-1 text-xs font-semibold hover:bg-amber-600 transition"
+                      >
+                        {isLoading ? "Entering…" : "Enter account"}
+                      </button>
+                      <button onClick={() => setConfirmViewId(null)} className="text-xs text-gray-400 hover:text-gray-600">
+                        Cancel
+                      </button>
+                    </div>
                   ) : (
-                    <button
-                      onClick={() => setConfirmDeleteId(u.id)}
-                      disabled={isLoading}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
-                      title="Delete user"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      {u.role !== "admin" && (
+                        <button
+                          onClick={() => setConfirmViewId(u.id)}
+                          disabled={isLoading}
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition"
+                          title="View as this user"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setConfirmDeleteId(u.id)}
+                        disabled={isLoading}
+                        className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>

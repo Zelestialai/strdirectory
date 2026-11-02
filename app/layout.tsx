@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { cookies } from "next/headers";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Analytics } from "@/components/Analytics";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { getActiveMarket, getAllMarkets } from "@/lib/market";
 
 export const metadata: Metadata = {
@@ -25,10 +27,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     ? { name: activeMarket.name, slug: activeMarket.slug, state: activeMarket.state }
     : null;
 
+  const impersonating = cookies().get("sv_impersonating")?.value;
+
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col">
         <Analytics />
+        {impersonating && <ImpersonationBanner name={impersonating} />}
         <Navbar currentMarket={currentMarket} markets={markets} />
         <main className="flex-1">{children}</main>
         <Footer />
