@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { createTurnoverTask } from "@/lib/turnover";
+import { createTurnoverTask, removeTurnoversForCanceledEvents } from "@/lib/turnover";
 
 const BASE = "https://api.ownerrez.com/v2";
 const AUTHORIZE_URL =
@@ -338,6 +338,14 @@ export async function syncOwnerRezForHost(hostId: string): Promise<{
       const orStatus = String(pick(b, ["status"]) ?? "").toLowerCase();
       if (isBlock || canceledAt || orStatus.includes("cancel")) {
         const staleUid = `ownerrez-${String(pick(b, ["id", "bookingId"]))}`;
+        // Remove the turnover job(s) tied to this event, then the event itself.
+        const { data: staleEv } = await db
+          .from("calendar_events")
+          .select("id")
+          .eq("host_id", hostId)
+          .eq("event_uid", staleUid)
+          .maybeSingle();
+        if (staleEv?.id) await removeTurnoversForCanceledEvents([staleEv.id]);
         await db.from("calendar_events").delete().eq("host_id", hostId).eq("event_uid", staleUid);
         continue;
       }

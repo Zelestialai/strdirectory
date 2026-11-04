@@ -156,6 +156,41 @@ export async function createTurnoverTask(input: CreateTurnoverInput) {
   return task;
 }
 
+/**
+ * Remove turnover tasks tied to calendar events that were canceled/removed
+ * upstream. Completed jobs are kept (history); any assigned cleaner is notified.
+ * Returns the number of tasks removed.
+ */
+export async function removeTurnoversForCanceledEvents(eventIds: string[]): Promise<number> {
+  if (!eventIds.length) return 0;
+
+  const { data: tasks } = await supabaseAdmin
+    .from("turnover_tasks")
+    .select("id, title, scheduled_date, assigned_vendor_id, vendor:assigned_vendor_id(user_id)")
+    .in("calendar_event_id", eventIds)
+    .neq("status", "completed");
+
+  if (!tasks || tasks.length === 0) return 0;
+
+  // Let any assigned cleaner know their job is off.
+  for (const t of tasks) {
+    const cleanerUserId = (t.vendor as any)?.user_id as string | undefined;
+    if (cleanerUserId) {
+      await createNotification({
+        userId: cleanerUserId,
+        type: "system",
+        title: "Turnover job canceled",
+        body: `${t.title} on ${t.scheduled_date} was canceled — the booking was canceled.`,
+        link: "/dashboard/jobs",
+      });
+    }
+  }
+
+  const ids = tasks.map((t) => t.id as string);
+  await supabaseAdmin.from("turnover_tasks").delete().in("id", ids);
+  return ids.length;
+}
+
 export function turnoverEmail({
   heading,
   body,

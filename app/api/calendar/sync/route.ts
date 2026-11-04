@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { createTurnoverTask } from "@/lib/turnover";
+import { createTurnoverTask, removeTurnoversForCanceledEvents } from "@/lib/turnover";
 
 // ─── iCal parser ─────────────────────────────────────────────────────────────
 function parseDate(value: string): string {
@@ -164,8 +164,25 @@ export async function POST(req: NextRequest) {
       .update({ last_synced_at: new Date().toISOString() })
       .eq("id", property.id);
 
-    // Auto-generate a turnover cleaning task per upcoming checkout
     const today = new Date().toISOString().slice(0, 10);
+
+    // Remove future events — and their turnover jobs — that vanished from the
+    // feed (i.e. bookings canceled upstream).
+    const feedUids = new Set(events.map((e) => e.uid));
+    const { data: existingFuture } = await supabase
+      .from("calendar_events")
+      .select("id, event_uid")
+      .eq("property_id", property.id)
+      .gte("end_date", today);
+    const staleIds = (existingFuture ?? [])
+      .filter((e) => !feedUids.has(e.event_uid))
+      .map((e) => e.id as string);
+    if (staleIds.length) {
+      await removeTurnoversForCanceledEvents(staleIds);
+      await supabase.from("calendar_events").delete().in("id", staleIds);
+    }
+
+    // Auto-generate a turnover cleaning task per upcoming checkout
     const { data: upcoming } = await supabase
       .from("calendar_events")
       .select("id, end_date")
